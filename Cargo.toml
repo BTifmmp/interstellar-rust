@@ -1,0 +1,10 @@
+[package]
+name = "interstellar_rust"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+macroquad = "0.4.14"
+nyx-space = "2.3.1"
+hyperdual = "=1.4.0"
+anise = "0.10.1"
