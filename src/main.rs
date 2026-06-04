@@ -1,7 +1,8 @@
 use macroquad::prelude::*;
 use nyx_space::cosmic::{Epoch, Unit};
-mod sim;
+use crate::simulation::world::SimulationWorld;
 mod models;
+mod simulation;
 
 const VIEW_SCALE: f32 = 1e-6; 
 
