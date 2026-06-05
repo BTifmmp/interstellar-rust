@@ -1532,6 +1532,8 @@ dependencies = [
  "hyperdual",
  "macroquad",
  "nyx-space",
+ "rand 0.8.6",
+ "rayon",
 ]
 
 [[package]]
