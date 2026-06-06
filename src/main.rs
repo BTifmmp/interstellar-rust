@@ -91,9 +91,9 @@ async fn main() {
             draw_body(&cam_controller.camera, body, BLUE);
         }
 
-        draw_trajectory(&cam_controller.camera, &moon_traj, DARKGRAY);
+        draw_vec_trajectory(&cam_controller.camera, &moon_traj, DARKGRAY);
 
-        draw_trajectory(&cam_controller.camera, &trajectory, GRAY);
+        draw_rocket_trajectory(&cam_controller.camera, &trajectory, GRAY);
 
         let current_elapsed = (world.epoch - start_time).num_seconds() as f64;
         let target_index = (current_elapsed / snapshot_dt_s) as usize;
