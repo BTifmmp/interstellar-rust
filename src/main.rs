@@ -1,6 +1,6 @@
 use crate::render::camera::CameraController;
 use crate::render::drawing::{draw_body, draw_rocket, draw_trajectory};
-use crate::simulation::world::{RocketState, generate_rocket_trajectory};
+use crate::simulation::world::{generate_rocket_trajectory};
 use macroquad::prelude::*;
 mod render;
 mod simulation;
@@ -95,7 +95,7 @@ async fn main() {
         let target_index = (current_elapsed / snapshot_dt_s) as usize;
 
         if let Some(current_state) = trajectory.get(target_index) {
-            draw_rocket(&cam_controller.camera, current_state.position_km, BLUE);
+            draw_rocket(&cam_controller.camera, current_state.position_km, YELLOW);
         }
 
         // Draw basic HUD metadata info
