@@ -125,11 +125,16 @@ pub fn generate_rocket_trajectory(
         time_since_last_snapshot += dt_s;
 
         if time_since_last_snapshot >= snapshot_dt_s {
-            if let Some(simulated_rocket) = world.rockets.iter().find(|r| r.id == target_id) {
+                let mut dist_from_moon = 0.0;
+                if let Some(moon) = world.bodies.iter_mut().find(|b| b.body_id == BodyId::MOON) {
+                  dist_from_moon = (moon.position_km - rocket.position_km).norm();
+                }
+                if let Some(simulated_rocket) = world.rockets.iter().find(|r| r.id == target_id) {
                 trajectory.push(RocketState {
                     time: elapsed,
                     position_km: simulated_rocket.position_km,
                     velocity_km: simulated_rocket.velocity_km,
+                    distance_from_moon: dist_from_moon
                 });
             }
             time_since_last_snapshot = 0.0;
