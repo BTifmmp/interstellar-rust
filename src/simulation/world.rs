@@ -87,6 +87,7 @@ pub struct RocketState {
     pub time: f64,
     pub position_km: Vec3d,
     pub velocity_km: Vec3d,
+    pub distance_from_moon: f64
 }
 
 pub fn generate_rocket_trajectory(
@@ -103,10 +104,16 @@ pub fn generate_rocket_trajectory(
     let expected_snapshots = (duration_s / dt_s).ceil() as usize + 1;
     let mut trajectory = Vec::with_capacity(expected_snapshots);
 
+    let mut dist_from_moon = 0.0;
+    if let Some(moon) = world.bodies.iter_mut().find(|b| b.body_id == BodyId::MOON) {
+        dist_from_moon = (moon.position_km - rocket.position_km).norm();
+    }
+
     trajectory.push(RocketState {
         time: 0.0, // Relative elapsed time from start_epoch
         position_km: rocket.position_km,
         velocity_km: rocket.velocity_km,
+        distance_from_moon: dist_from_moon
     });
 
     let mut elapsed = 0.0;
