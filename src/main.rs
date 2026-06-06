@@ -1,6 +1,6 @@
 use crate::render::camera::CameraController;
 use crate::render::drawing::{draw_body, draw_rocket, draw_trajectory};
-use crate::simulation::world::{generate_rocket_trajectory};
+use crate::simulation::world::{generate_moon_trajectory, generate_rocket_trajectory};
 use macroquad::prelude::*;
 mod render;
 mod simulation;
@@ -34,6 +34,8 @@ async fn main() {
     let trajectory =
         generate_rocket_trajectory(&test_rocket, start_time, duration_s, dt_s, snapshot_dt_s);
     println!("Trajectory mapped! Rendered points: {}", trajectory.len());
+
+    let moon_traj = generate_moon_trajectory(start_time, duration_s);
 
     let mut collided = false;
     for state in &trajectory {
@@ -88,6 +90,8 @@ async fn main() {
         for body in &world.bodies {
             draw_body(&cam_controller.camera, body, BLUE);
         }
+
+        draw_trajectory(&cam_controller.camera, &moon_traj, DARKGRAY);
 
         draw_trajectory(&cam_controller.camera, &trajectory, GRAY);
 

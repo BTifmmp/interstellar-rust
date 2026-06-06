@@ -131,3 +131,29 @@ pub fn generate_rocket_trajectory(
 
     trajectory
 }
+pub fn generate_moon_trajectory(start_epoch: DateTime<Utc>, duration_s: f64) -> Vec<Vec3d> {
+    let mut world = SimulationWorld::with_epoch(start_epoch);
+    
+    let hour_step_s = 3600.0;
+    
+
+    let expected_snapshots = (duration_s / hour_step_s).ceil() as usize + 1;
+    let mut moon_path = Vec::with_capacity(expected_snapshots);
+
+    if let Some(moon) = world.bodies.iter().find(|b| b.body_id == BodyId::MOON) {
+        moon_path.push(moon.position_km);
+    }
+
+    let mut elapsed = 0.0;
+
+    while elapsed < duration_s {
+        world.step(hour_step_s);
+        elapsed += hour_step_s;
+
+        if let Some(moon) = world.bodies.iter().find(|b| b.body_id == BodyId::MOON) {
+            moon_path.push(moon.position_km);
+        }
+    }
+
+    moon_path
+}

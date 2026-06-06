@@ -23,11 +23,33 @@ pub fn draw_body(camera: &DrawCamera, body: &Body, color: Color) {
     }
 }
 
-pub fn draw_trajectory(camera: &DrawCamera, trajectory: &[RocketState], color: Color) {
+pub fn draw_rocket_trajectory(camera: &DrawCamera, trajectory: &[RocketState], color: Color) {
     let mut last_screen_pos: Option<Vec2> = None;
 
     for state in trajectory {
         if let Some(current_screen_pos) = camera.world_to_screen(state.position_km) {
+            if let Some(prev_pos) = last_screen_pos {
+                draw_line(
+                    prev_pos.x,
+                    prev_pos.y,
+                    current_screen_pos.x,
+                    current_screen_pos.y,
+                    1.0,
+                    color,
+                );
+            }
+            last_screen_pos = Some(current_screen_pos);
+        } else {
+            last_screen_pos = None;
+        }
+    }
+}
+
+pub fn draw_vec_trajectory(camera: &DrawCamera, trajectory: &[Vec3d], color: Color) {
+    let mut last_screen_pos: Option<Vec2> = None;
+
+    for pos in trajectory {
+        if let Some(current_screen_pos) = camera.world_to_screen(*pos) {
             if let Some(prev_pos) = last_screen_pos {
                 draw_line(
                     prev_pos.x,
