@@ -2,6 +2,7 @@ use crate::render::camera::DrawCamera;
 use crate::simulation::objects::Body;
 use crate::simulation::world::RocketState;
 use crate::util::math::Vec3d;
+use chrono::{DateTime, Utc};
 use macroquad::prelude::*;
 
 pub fn draw_rocket(camera: &DrawCamera, position: Vec3d, color: Color) {
@@ -65,4 +66,21 @@ pub fn draw_vec_trajectory(camera: &DrawCamera, trajectory: &[Vec3d], color: Col
             last_screen_pos = None;
         }
     }
+}
+
+pub fn draw_hud(time: DateTime<Utc>) {
+    draw_text(
+        &format!("Date: {}", time.format("%Y-%m-%d %H:%M:%S")),
+        10.0,
+        20.0,
+        18.0,
+        WHITE,
+    );
+    draw_text(
+        "Controls: WASD to Move | Mouse to Look | ESC to Release Mouse",
+        10.0,
+        40.0,
+        14.0,
+        GRAY,
+    );
 }

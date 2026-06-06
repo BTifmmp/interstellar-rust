@@ -133,9 +133,9 @@ pub fn generate_rocket_trajectory(
 }
 pub fn generate_moon_trajectory(start_epoch: DateTime<Utc>, duration_s: f64) -> Vec<Vec3d> {
     let mut world = SimulationWorld::with_epoch(start_epoch);
-    
+    world.step(0.0);
+
     let hour_step_s = 3600.0;
-    
 
     let expected_snapshots = (duration_s / hour_step_s).ceil() as usize + 1;
     let mut moon_path = Vec::with_capacity(expected_snapshots);

@@ -1,5 +1,8 @@
 use crate::render::camera::CameraController;
-use crate::render::drawing::{draw_body, draw_rocket, draw_rocket_trajectory, draw_vec_trajectory};
+use crate::render::drawing::{
+    draw_body, draw_hud, draw_rocket, draw_rocket_trajectory, draw_vec_trajectory,
+};
+use crate::render::mouse::update_mouse_lock;
 use crate::simulation::world::{generate_moon_trajectory, generate_rocket_trajectory};
 use macroquad::prelude::*;
 mod render;
@@ -35,7 +38,7 @@ async fn main() {
         generate_rocket_trajectory(&test_rocket, start_time, duration_s, dt_s, snapshot_dt_s);
     println!("Trajectory mapped! Rendered points: {}", trajectory.len());
 
-    let moon_traj = generate_moon_trajectory(start_time, duration_s);
+    let moon_traj = generate_moon_trajectory(start_time, duration_s * 4.0);
 
     let mut collided = false;
     for state in &trajectory {
@@ -61,26 +64,19 @@ async fn main() {
     }
 
     let mut cam_controller = CameraController::new(Vec3d::new(0.0, 0.0, 45000.0));
-    set_cursor_grab(true);
-    show_mouse(false);
-    let mut update_mouse: bool = false;
+
+    let mut mouse_flag: bool = false;
 
     loop {
-        if is_key_pressed(KeyCode::Escape) {
-            set_cursor_grab(false);
-            show_mouse(true);
-            update_mouse = false;
+        match update_mouse_lock() {
+            Some(should_lock) => mouse_flag = should_lock,
+            None => {} // FIXED: Enters an empty block to safely do nothing
         }
 
-        if is_mouse_button_pressed(MouseButton::Left) {
-            set_cursor_grab(true);
-            show_mouse(false);
-            update_mouse = true;
+        if (mouse_flag) {
+          cam_controller.update();
         }
 
-        if update_mouse {
-            cam_controller.update();
-        }
 
         let live_dt = 60.0;
         world.step(live_dt);
@@ -102,21 +98,7 @@ async fn main() {
             draw_rocket(&cam_controller.camera, current_state.position_km, YELLOW);
         }
 
-        // Draw basic HUD metadata info
-        draw_text(
-            &format!("Date: {}", world.epoch.format("%Y-%m-%d %H:%M:%S")),
-            10.0,
-            20.0,
-            18.0,
-            WHITE,
-        );
-        draw_text(
-            "Controls: WASD to Move | Mouse to Look | ESC to Release Mouse",
-            10.0,
-            40.0,
-            14.0,
-            GRAY,
-        );
+        draw_hud(world.epoch);
 
         next_frame().await;
     }
