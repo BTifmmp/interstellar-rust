@@ -1,99 +1,133 @@
-use std::sync::Arc;
-use nyx_space::cosmic::{MetaAlmanac, Almanac, Epoch, Unit, Frame};
-use crate::models::objects::{Body, Rocket};
-use crate::models::math::Vec3d;
-use nyx_space::dynamics::orbital::OrbitalDynamics;
-use anise::constants::celestial_objects::{
-    MERCURY, VENUS, EARTH, MARS_BARYCENTER, 
-    JUPITER_BARYCENTER, SATURN_BARYCENTER, 
-    URANUS_BARYCENTER, NEPTUNE_BARYCENTER, 
-    SUN, MOON
-};
+use crate::simulation::objects::{Body, BodyId, Rocket};
+use crate::simulation::propagator::rk4_step;
+use crate::util::math::Vec3d;
+use chrono::{DateTime, Utc};
+use space_dust::bodies::{Earth, Moon};
 
 pub struct SimulationWorld {
-    pub current_epoch: Epoch,
-    pub almanac: Arc<Almanac>,
     pub bodies: Vec<Body>,
     pub rockets: Vec<Rocket>,
+    pub epoch: DateTime<Utc>,
 }
 
 impl SimulationWorld {
-    pub fn new(start_epoch: Epoch) -> Self {
-        let almanac = Arc::new(
-            MetaAlmanac::latest().expect("Failed to load almanac")
-        );
-
-        let mut world = Self {
-            current_epoch: start_epoch,
-            almanac,
-            bodies: Vec::new(),
-            rockets: Vec::new(),
-        };
-
-        world.init_solar_system();
-        world
+    pub fn new() -> Self {
+        Self::with_epoch(Utc::now())
     }
 
-    fn init_solar_system(&mut self) {
-        let planet_configs = [
-            ("Sun",     SUN,                [1.0, 0.9, 0.0, 1.0], 20.0),
-            ("Mercury", MERCURY,            [0.7, 0.7, 0.7, 1.0],  3.0),
-            ("Venus",   VENUS,              [0.9, 0.8, 0.5, 1.0],  5.0),
-            ("Earth",   EARTH,              [0.2, 0.5, 1.0, 1.0],  5.0),
-            ("Moon",    MOON,               [0.8, 0.8, 0.8, 1.0],  2.0),
-            ("Mars",    MARS_BARYCENTER,               [0.8, 0.3, 0.1, 1.0],  4.0),
-            ("Jupiter", JUPITER_BARYCENTER, [0.8, 0.6, 0.4, 1.0], 12.0),
-            ("Saturn",  SATURN_BARYCENTER,  [0.9, 0.8, 0.5, 1.0], 10.0),
-            ("Uranus",  URANUS_BARYCENTER,  [0.5, 0.8, 0.9, 1.0],  7.0),
-            ("Neptune", NEPTUNE_BARYCENTER, [0.2, 0.3, 0.9, 1.0],  7.0),
-        ];
-
-        for (name, naif_id, color, size) in planet_configs {
-            self.bodies.push(Body {
-                id: naif_id,
-                name: name.to_string(),
-                color,
-                size,
-                position: Vec3d::new(0.0, 0.0, 0.0),
-                velocity: Vec3d::new(0.0, 0.0, 0.0),
-            });
+    pub fn with_epoch(start_time: DateTime<Utc>) -> Self {
+        Self {
+            bodies: Self::init_bodies(),
+            rockets: Vec::new(),
+            epoch: start_time,
         }
+    }
 
-        self.update_bodies();
+    pub fn add_rocket(&mut self, rocket: Rocket) {
+        self.rockets.push(rocket);
     }
 
     pub fn step(&mut self, dt_s: f64) {
-        self.current_epoch += dt_s * Unit::Second;
+        self.epoch += chrono::Duration::milliseconds((dt_s * 1000.0) as i64);
+
         self.update_bodies();
+        self.update_rockets(dt_s);
+    }
+
+    pub fn run_for(&mut self, duration_s: f64, dt_s: f64) {
+        let mut elapsed = 0.0;
+
+        while elapsed < duration_s {
+            let step_dt = if elapsed + dt_s > duration_s {
+                duration_s - elapsed
+            } else {
+                dt_s
+            };
+
+            self.step(step_dt);
+            elapsed += step_dt;
+        }
     }
 
     fn update_bodies(&mut self) {
-        let ssb_frame = Frame::from_ephem_j2000(SUN);
-        let epoch = self.current_epoch;
+        let moon_pos = Moon::eci_position_km(&self.epoch);
 
-        for body in &mut self.bodies {
-            let body_frame = Frame::from_ephem_j2000(body.id);
-
-            match self.almanac.translate(body_frame, ssb_frame, epoch, None) {
-                Ok(state) => {
-                    body.position = Vec3d::new(
-                        state.radius_km.x,
-                        state.radius_km.y,
-                        state.radius_km.z,
-                    );
-                    body.velocity = Vec3d::new(
-                        state.radius_km.x,
-                        state.radius_km.y,
-                        state.radius_km.z,
-                    );
-                }
-                Err(e) => {
-                    eprintln!("Could not get state for {}: {e}", body.name);
-                }
-            }
+        if let Some(moon) = self.bodies.iter_mut().find(|b| b.body_id == BodyId::MOON) {
+            moon.position_km = Vec3d::new(moon_pos.x, moon_pos.y, moon_pos.z);
         }
     }
-    fn update_rockets(&mut self) {
 
+    fn update_rockets(&mut self, dt_s: f64) {
+        for rocket in &mut self.rockets {
+            rk4_step(rocket, &self.bodies, dt_s);
+        }
     }
+
+    fn init_bodies() -> Vec<Body> {
+        let earth = Body {
+            body_id: BodyId::EARTH,
+            mu_km3_s2: Earth::MU_KM,
+            position_km: Vec3d::new(0.0, 0.0, 0.0),
+            radius_km: Earth::EQUATORIAL_RADIUS_KM,
+        };
+
+        let moon = Body {
+            body_id: BodyId::MOON,
+            mu_km3_s2: Moon::MU / 1e9,
+            position_km: Vec3d::new(0.0, 0.0, 0.0),
+            radius_km: Moon::RADIUS / 1000.0,
+        };
+
+        vec![earth, moon]
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RocketState {
+    pub time: f64,
+    pub position_km: Vec3d,
+    pub velocity_km: Vec3d,
+}
+
+pub fn generate_rocket_trajectory(
+    rocket: &Rocket,
+    start_epoch: DateTime<Utc>,
+    duration_s: f64,
+    dt_s: f64,
+    snapshot_dt_s: f64,
+) -> Vec<RocketState> {
+    let mut world = SimulationWorld::with_epoch(start_epoch);
+    let target_id = rocket.id;
+    world.add_rocket(rocket.clone());
+
+    let expected_snapshots = (duration_s / dt_s).ceil() as usize + 1;
+    let mut trajectory = Vec::with_capacity(expected_snapshots);
+
+    trajectory.push(RocketState {
+        time: 0.0, // Relative elapsed time from start_epoch
+        position_km: rocket.position_km,
+        velocity_km: rocket.velocity_km,
+    });
+
+    let mut elapsed = 0.0;
+    let mut time_since_last_snapshot = 0.0;
+
+    while elapsed < duration_s {
+        world.step(dt_s);
+        elapsed += dt_s;
+        time_since_last_snapshot += dt_s;
+
+        if time_since_last_snapshot >= snapshot_dt_s {
+            if let Some(simulated_rocket) = world.rockets.iter().find(|r| r.id == target_id) {
+                trajectory.push(RocketState {
+                    time: elapsed,
+                    position_km: simulated_rocket.position_km,
+                    velocity_km: simulated_rocket.velocity_km,
+                });
+            }
+            time_since_last_snapshot = 0.0;
+        }
+    }
+
+    trajectory
 }

@@ -1,5 +1,4 @@
-pub type BodyId = u64;
-use std::ops::{Add, Sub, Mul, AddAssign};
+use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Vec3d {
@@ -72,7 +71,6 @@ impl Mul<f64> for Vec3d {
     }
 }
 
-// Mnożenie skalar * wektor (dla wygody)
 impl Mul<Vec3d> for f64 {
     type Output = Vec3d;
     fn mul(self, vec: Vec3d) -> Vec3d {
@@ -85,5 +83,13 @@ impl AddAssign for Vec3d {
         self.x += other.x;
         self.y += other.y;
         self.z += other.z;
+    }
+}
+
+impl SubAssign for Vec3d {
+    fn sub_assign(&mut self, other: Self) {
+        self.x -= other.x;
+        self.y -= other.y;
+        self.z -= other.z;
     }
 }

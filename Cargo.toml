@@ -5,8 +5,9 @@ edition = "2024"
 
 [dependencies]
 macroquad = "0.4.14"
-nyx-space = "2.3.1"
 hyperdual = "=1.4.0"
 anise = "0.10.1"
 rand = "0.8.5"
 rayon = "1.7.0"
+space-dust = "0.1.0"
+chrono = "0.4.45"

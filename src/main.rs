@@ -1,111 +1,118 @@
-// main.rs
-mod algo;
-mod models;
-mod physics;
-
+use crate::render::camera::CameraController;
+use crate::render::drawing::{draw_body, draw_rocket, draw_trajectory};
+use crate::simulation::world::{RocketState, generate_rocket_trajectory};
 use macroquad::prelude::*;
-use crate::algo::pso::Swarm;
-use crate::algo::objective::{cost_function, generate_trajectory, moon_position};
+mod render;
+mod simulation;
+mod util;
+use simulation::world::SimulationWorld;
+use space_dust::bodies::Earth; // Adjusted to match your space_dust path
 
-const VIEW_SCALE: f32 = 1e-3; // 1 piksel = 1000 km (orbita Księżyca ~384 px)
+use crate::simulation::objects::Rocket;
+use crate::util::math::Vec3d;
+use chrono::Utc;
 
-#[macroquad::main("PSO - Trajektorie statków do Księżyca")]
+#[macroquad::main("Orbital Simulation 3D")]
 async fn main() {
-    // Parametry PSO
-    let bounds = vec![
-        (-10.0, 10.0),   // vx [km/s]
-        (-10.0, 10.0),   // vy
-        (-10.0, 10.0),   // vz
-        (-20000.0, 20000.0), // dx [km]
-        (-20000.0, 20000.0), // dy
-        (-20000.0, 20000.0), // dz
-    ];
-    let num_particles = 15;
-    let max_iterations = 10;
-    let max_duration = 7.0 * 86400.0; // 7 dni
-    let dt = 300.0; // krok propagacji w optymalizacji (5 min)
+    let start_time = Utc::now();
+    let mut world = SimulationWorld::with_epoch(start_time);
 
-    let objective = |params: &[f64]| {
-        cost_function(params, max_duration, dt, (1.0, 0.001, 0.001))
+    // 2. Configure our rocket parameters
+    let velocity = Vec3d::new(2.0, 9.0, 3.0);
+
+    let test_rocket = Rocket {
+        id: 0,
+        position_km: Vec3d::new(Earth::EQUATORIAL_RADIUS_KM + 450.0, 0.0, 0.0),
+        velocity_km: velocity,
     };
 
-    println!("Rozpoczynam optymalizację PSO...");
-    let mut swarm = Swarm::new(num_particles, bounds, 0.7, 1.5, 1.5);
-    let (best_params, best_cost) = swarm.optimize(max_iterations, &objective);
-    println!("Najlepsze parametry: {:?}, koszt: {}", best_params, best_cost);
+    let duration_s = 86400.0 * 3.0;
+    let snapshot_dt_s = 100.0;
+    let dt_s = 10.0;
 
-    // Generowanie trajektorii do wizualizacji (większa dokładność)
-    let dt_viz = 60.0;
-    let best_trajectory = generate_trajectory(&best_params, max_duration, dt_viz);
-    let mut all_trajectories = Vec::new();
-    for particle in &swarm.particles {
-        let traj = generate_trajectory(&particle.position, max_duration, dt_viz);
-        all_trajectories.push(traj);
+    println!("Calculating rocket trajectory paths...");
+    let trajectory =
+        generate_rocket_trajectory(&test_rocket, start_time, duration_s, dt_s, snapshot_dt_s);
+    println!("Trajectory mapped! Rendered points: {}", trajectory.len());
+
+    let mut collided = false;
+    for state in &trajectory {
+        let distance_from_center = state.position_km.norm();
+
+        if distance_from_center < Earth::EQUATORIAL_RADIUS_KM {
+            let elapsed_hours = state.time / 3600.0;
+            println!(
+                "⚠️ COLLISION DETECTED! Rocket crashed into Earth at T + {:.2} hours.",
+                elapsed_hours
+            );
+            println!(
+                "   Penetration Depth: {:.2} km below surface.",
+                Earth::EQUATORIAL_RADIUS_KM - distance_from_center
+            );
+            collided = true;
+            break;
+        }
     }
 
-    // Czas symulacji dla animacji Księżyca (i ewentualnie statków)
-    let mut sim_time = 0.0;
+    if !collided {
+        println!("✅ Trajectory clean! No Earth collisions detected within the simulation window.");
+    }
+
+    let mut cam_controller = CameraController::new(Vec3d::new(0.0, 0.0, 45000.0));
+    set_cursor_grab(true);
+    show_mouse(false);
+    let mut update_mouse: bool = false;
 
     loop {
+        if is_key_pressed(KeyCode::Escape) {
+            set_cursor_grab(false);
+            show_mouse(true);
+            update_mouse = false;
+        }
+
+        if is_mouse_button_pressed(MouseButton::Left) {
+            set_cursor_grab(true);
+            show_mouse(false);
+            update_mouse = true;
+        }
+
+        if update_mouse {
+            cam_controller.update();
+        }
+
+        let live_dt = 60.0;
+        world.step(live_dt);
+
         clear_background(BLACK);
 
-        let screen_center = vec2(screen_width() / 2.0, screen_height() / 2.0);
-
-        // 1. Rysowanie wszystkich trajektorii roju (szare, półprzezroczyste)
-        for traj in &all_trajectories {
-            for i in 0..traj.len().saturating_sub(1) {
-                let p1 = traj[i];
-                let p2 = traj[i+1];
-                let x1 = (p1.x as f32 * VIEW_SCALE) + screen_center.x;
-                let y1 = (p1.y as f32 * VIEW_SCALE) + screen_center.y;
-                let x2 = (p2.x as f32 * VIEW_SCALE) + screen_center.x;
-                let y2 = (p2.y as f32 * VIEW_SCALE) + screen_center.y;
-                draw_line(x1, y1, x2, y2, 1.0, Color::new(0.5, 0.5, 0.5, 0.5));
-            }
+        for body in &world.bodies {
+            draw_body(&cam_controller.camera, body, BLUE);
         }
 
-        // 2. Rysowanie najlepszej trajektorii (żółta, grubsza)
-        for i in 0..best_trajectory.len().saturating_sub(1) {
-            let p1 = best_trajectory[i];
-            let p2 = best_trajectory[i+1];
-            let x1 = (p1.x as f32 * VIEW_SCALE) + screen_center.x;
-            let y1 = (p1.y as f32 * VIEW_SCALE) + screen_center.y;
-            let x2 = (p2.x as f32 * VIEW_SCALE) + screen_center.x;
-            let y2 = (p2.y as f32 * VIEW_SCALE) + screen_center.y;
-            draw_line(x1, y1, x2, y2, 2.5, YELLOW);
+        draw_trajectory(&cam_controller.camera, &trajectory, GRAY);
+
+        let current_elapsed = (world.epoch - start_time).num_seconds() as f64;
+        let target_index = (current_elapsed / snapshot_dt_s) as usize;
+
+        if let Some(current_state) = trajectory.get(target_index) {
+            draw_rocket(&cam_controller.camera, current_state.position_km, BLUE);
         }
 
-        // 3. Rysowanie Ziemi (środek układu)
-        let earth_x = screen_center.x;
-        let earth_y = screen_center.y;
-        draw_circle(earth_x, earth_y, 25.0, BLUE);
-        draw_text("Ziemia", earth_x + 15.0, earth_y - 15.0, 20.0, WHITE);
-
-        // 4. Rysowanie Księżyca (pozycja zależna od czasu)
-        let moon_pos = moon_position(sim_time);
-        let moon_x = (moon_pos.x as f32 * VIEW_SCALE) + screen_center.x;
-        let moon_y = (moon_pos.y as f32 * VIEW_SCALE) + screen_center.y;
-        draw_circle(moon_x, moon_y, 10.0, GRAY);
-        draw_text("Księżyc", moon_x + 8.0, moon_y - 8.0, 16.0, WHITE);
-
-        // 5. Opcjonalnie: narysuj aktualną pozycję najlepszego statku (interpolując trajektorię)
-        if sim_time <= max_duration {
-            // Znajdź indeks przedziału czasowego (zakładamy stały krok dt_viz)
-            let idx = (sim_time / dt_viz) as usize;
-            if idx < best_trajectory.len() {
-                let ship_pos = best_trajectory[idx];
-                let ship_x = (ship_pos.x as f32 * VIEW_SCALE) + screen_center.x;
-                let ship_y = (ship_pos.y as f32 * VIEW_SCALE) + screen_center.y;
-                draw_circle(ship_x, ship_y, 5.0, RED);
-            }
-        }
-
-        // Aktualizacja czasu symulacji (np. przyspieszenie 500×)
-        let frame_time = get_frame_time();
-        sim_time += frame_time as f64 * 3600.0;
-        if sim_time > max_duration {
-            sim_time = 0.0; // resetujemy, aby zobaczyć ponownie
-        }
+        // Draw basic HUD metadata info
+        draw_text(
+            &format!("Date: {}", world.epoch.format("%Y-%m-%d %H:%M:%S")),
+            10.0,
+            20.0,
+            18.0,
+            WHITE,
+        );
+        draw_text(
+            "Controls: WASD to Move | Mouse to Look | ESC to Release Mouse",
+            10.0,
+            40.0,
+            14.0,
+            GRAY,
+        );
 
         next_frame().await;
     }
