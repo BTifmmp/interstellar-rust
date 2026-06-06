@@ -1,5 +1,5 @@
 use crate::render::camera::CameraController;
-use crate::render::drawing::{draw_body, draw_rocket, draw_trajectory};
+use crate::render::drawing::{draw_body, draw_rocket, draw_rocket_trajectory, draw_vec_trajectory};
 use crate::simulation::world::{generate_moon_trajectory, generate_rocket_trajectory};
 use macroquad::prelude::*;
 mod render;
