@@ -1,4 +1,5 @@
 use crate::render::camera::CameraController;
+use crate::simulation::world::{precompute_moon_states};
 use crate::render::drawing::{
     draw_body, draw_hud, draw_rocket, draw_rocket_trajectory, draw_vec_trajectory,
 };
@@ -44,9 +45,15 @@ async fn main() {
         config.pso_params.c2,
     );
 
+    
+    let snapshot_dt_s = config.simulation_params.snapshot_dt_s;
+    let num_snapshots = (config.simulation_params.max_duration_days * 86400.0 / snapshot_dt_s) as usize;
+
+    let moon_states = precompute_moon_states(start_epoch, snapshot_dt_s, num_snapshots);
+
     // 4. Definicja funkcji kosztu
     let objective = |params: &[f64]| {
-        cost_function(params, start_epoch, &config)
+        cost_function(params, start_epoch, &config, &moon_states)
     };
 
     println!("Rozpoczynam optymalizację PSO. To może potrwać kilkadziesiąt sekund...");

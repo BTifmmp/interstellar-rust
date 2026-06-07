@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Mul, Sub, SubAssign, Div};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Vec3d {
@@ -91,5 +91,16 @@ impl SubAssign for Vec3d {
         self.x -= other.x;
         self.y -= other.y;
         self.z -= other.z;
+    }
+}
+
+impl Div<f64> for Vec3d {
+    type Output = Self;
+    fn div(self, rhs: f64) -> Self {
+        Vec3d {
+            x: self.x / rhs,
+            y: self.y / rhs,
+            z: self.z / rhs,
+        }
     }
 }
