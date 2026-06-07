@@ -8,8 +8,12 @@ use macroquad::prelude::*;
 mod render;
 mod simulation;
 mod util;
+mod algo;
 use simulation::world::SimulationWorld;
 use space_dust::bodies::Earth; // Adjusted to match your space_dust path
+use algo::config::Config;
+use algo::pso::Swarm;
+use algo::objective::{cost_function, generate_trajectory_for_params};
 
 use crate::simulation::objects::Rocket;
 use crate::util::math::Vec3d;
@@ -17,51 +21,50 @@ use chrono::Utc;
 
 #[macroquad::main("Orbital Simulation 3D")]
 async fn main() {
-    let start_time = Utc::now();
-    let mut world = SimulationWorld::with_epoch(start_time);
+    // 1. Wczytaj konfigurację
+    let config = Config::from_file("config.json");
+    let start_epoch = Utc::now();
 
-    // 2. Configure our rocket parameters
-    let velocity = Vec3d::new(2.0, 9.0, 3.0);
+    // 2. Przygotuj zakresy dla PSO (6 wymiarów)
+    let bounds = vec![
+        (config.bounds.vx[0], config.bounds.vx[1]),
+        (config.bounds.vy[0], config.bounds.vy[1]),
+        (config.bounds.vz[0], config.bounds.vz[1]),
+        (config.bounds.dx[0], config.bounds.dx[1]),
+        (config.bounds.dy[0], config.bounds.dy[1]),
+        (config.bounds.dz[0], config.bounds.dz[1]),
+    ];
 
-    let test_rocket = Rocket {
-        id: 0,
-        position_km: Vec3d::new(Earth::EQUATORIAL_RADIUS_KM + 450.0, 0.0, 0.0),
-        velocity_km: velocity,
+    // 3. Utwórz rój
+    let mut swarm = Swarm::new(
+        config.pso_params.num_particles,
+        bounds,
+        config.pso_params.w,
+        config.pso_params.c1,
+        config.pso_params.c2,
+    );
+
+    // 4. Definicja funkcji kosztu
+    let objective = |params: &[f64]| {
+        cost_function(params, start_epoch, &config)
     };
 
-    let duration_s = 86400.0 * 3.0;
-    let snapshot_dt_s = 100.0;
-    let dt_s = 10.0;
+    println!("Rozpoczynam optymalizację PSO. To może potrwać kilkadziesiąt sekund...");
+    let (best_params, best_cost) = swarm.optimize(config.pso_params.max_iterations, &objective);
+    println!("Najlepsze parametry: {:?}", best_params);
+    println!("Najlepszy koszt: {}", best_cost);
 
-    println!("Calculating rocket trajectory paths...");
-    let trajectory =
-        generate_rocket_trajectory(&test_rocket, start_time, duration_s, dt_s, snapshot_dt_s);
-    println!("Trajectory mapped! Rendered points: {}", trajectory.len());
-
-    let moon_traj = generate_moon_trajectory(start_time, duration_s * 4.0);
-
-    let mut collided = false;
-    for state in &trajectory {
-        let distance_from_center = state.position_km.norm();
-
-        if distance_from_center < Earth::EQUATORIAL_RADIUS_KM {
-            let elapsed_hours = state.time / 3600.0;
-            println!(
-                "⚠️ COLLISION DETECTED! Rocket crashed into Earth at T + {:.2} hours.",
-                elapsed_hours
-            );
-            println!(
-                "   Penetration Depth: {:.2} km below surface.",
-                Earth::EQUATORIAL_RADIUS_KM - distance_from_center
-            );
-            collided = true;
-            break;
-        }
+    // // 5. Generuj trajektorie dla wszystkich cząstek (do rysowania roju)
+    let mut all_trajectories = Vec::new();
+    for particle in &swarm.particles {
+        let traj = generate_trajectory_for_params(&particle.position, start_epoch, &config);
+        all_trajectories.push(traj);
     }
+    let best_trajectory = generate_trajectory_for_params(&best_params, start_epoch, &config);
 
-    if !collided {
-        println!("✅ Trajectory clean! No Earth collisions detected within the simulation window.");
-    }
+    let mut world = SimulationWorld::with_epoch(start_epoch);
+
+    let moon_traj = generate_moon_trajectory(start_epoch, config.simulation_params.max_duration_days * 86400.0 * 4.0);
 
     let mut cam_controller = CameraController::new(Vec3d::new(0.0, 0.0, 45000.0));
 
@@ -87,15 +90,25 @@ async fn main() {
             draw_body(&cam_controller.camera, body, BLUE);
         }
 
+        // // Rysowanie wszystkich trajektorii roju (szare)
+        for traj in &all_trajectories {
+            // Funkcja rysująca linię po punktach (możesz użyć draw_vec_trajectory)
+            draw_vec_trajectory(&cam_controller.camera, traj, DARKGRAY);
+        }
+
+        // Rysowanie trajektorii Księżyca
         draw_vec_trajectory(&cam_controller.camera, &moon_traj, DARKGRAY);
 
-        draw_rocket_trajectory(&cam_controller.camera, &trajectory, GRAY);
+        // POPRAWKA: Rysowanie najlepszej trajektorii znalezionej przez PSO zamiast starej testowej
+        draw_vec_trajectory(&cam_controller.camera, &best_trajectory, YELLOW);
 
-        let current_elapsed = (world.epoch - start_time).num_seconds() as f64;
-        let target_index = (current_elapsed / snapshot_dt_s) as usize;
+        // Obliczanie klatki animacji rakiety na podstawie czasu symulacji i konfiguracji JSON
+        let current_elapsed = (world.epoch - start_epoch).num_seconds() as f64;
+        let target_index = (current_elapsed / config.simulation_params.snapshot_dt_s) as usize;
 
-        if let Some(current_state) = trajectory.get(target_index) {
-            draw_rocket(&cam_controller.camera, current_state.position_km, YELLOW);
+        // POPRAWKA: Odczyt pozycji żółtej rakiety z właściwego wektora best_trajectory
+        if let Some(current_state) = best_trajectory.get(target_index) {
+            draw_rocket(&cam_controller.camera, *current_state, YELLOW);
         }
 
         draw_hud(world.epoch);
