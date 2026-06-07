@@ -1,7 +1,7 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     pub start_point: GeoPoint,               // miejsce startu na ziemi
     pub target_point: GeoPoint,              // miejsce lądowania na księżycu
@@ -11,15 +11,14 @@ pub struct Config {
     pub weights: [f64; 3], // wagi dla funkcji kosztu(waga_odległości, waga_prędkości_startowej, waga_prędkości_końcowej)
 }
 
-#[derive(Debug, Deserialize)]
-pub struct GeoPoint {
-    //Reprezentuje punkt na powierzchni (lub nad nią) ciała niebieskiego
-    pub latitude_deg: f64,  // w pionie
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GeoPoint { //Reprezentuje punkt na powierzchni (lub nad nią) ciała niebieskiego
+    pub latitude_deg: f64, // w pionie
     pub longitude_deg: f64, // w poziomie
     pub altitude_km: f64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct PsoParams {
     pub num_particles: usize,
     pub max_iterations: usize,
@@ -28,7 +27,7 @@ pub struct PsoParams {
     pub c2: f64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Bounds {
     pub vx: [f64; 2], // zakresy prędkości początkowej rakiety (x,y,z) w km/s
     pub vy: [f64; 2],
@@ -38,7 +37,7 @@ pub struct Bounds {
     pub dz: [f64; 2],
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SimulationParams {
     pub max_duration_days: f64, // maksymalny czas trwania symulacji (w dniach)
     pub dt_s: f64,              // krok całkowania w propagacji RK4 (w sekundach)
