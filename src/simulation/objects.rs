@@ -1,12 +1,12 @@
 use crate::util::math::Vec3d;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum BodyId {
     EARTH,
     MOON,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Body {
     pub body_id: BodyId,
 
@@ -15,7 +15,7 @@ pub struct Body {
     pub radius_km: f64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Rocket {
     pub id: i64,
     pub position_km: Vec3d,

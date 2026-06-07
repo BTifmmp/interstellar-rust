@@ -29,15 +29,13 @@ impl Swarm {
                     .map(|i| {
                         let (min, max) = bounds[i];
                         if (min - max).abs() < 1e-12 {
-                            min  // zakres zerowy – zwróć stałą wartość
+                            min // zakres zerowy – zwróć stałą wartość
                         } else {
                             rng.gen_range(min..max)
                         }
                     })
                     .collect();
-                let velocity: Vec<f64> = (0..dims)
-                    .map(|_| rng.gen_range(-1.0..1.0))
-                    .collect();
+                let velocity: Vec<f64> = (0..dims).map(|_| rng.gen_range(-1.0..1.0)).collect();
                 Particle {
                     position: position.clone(),
                     velocity,
@@ -97,9 +95,9 @@ impl Swarm {
         for i in 0..iterations {
             self.update(cost_function);
             println!(
-                "Iteracja {} / {} (Najlepszy globalny koszt: {:.4})", 
-                i + 1, 
-                iterations, 
+                "Iteracja {} / {} (Najlepszy globalny koszt: {:.4})",
+                i + 1,
+                iterations,
                 self.global_best_cost
             );
         }
