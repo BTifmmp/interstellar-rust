@@ -1,0 +1,33 @@
+{
+  "start_point": {
+    "latitude_deg": 28.5,
+    "longitude_deg": -80.5,
+    "altitude_km": 0.0
+  },
+  "target_point": {
+    "latitude_deg": 0.0,
+    "longitude_deg": 0.0,
+    "altitude_km": 0.0
+  },
+  "pso_params": {
+    "num_particles": 15,
+    "max_iterations": 5,
+    "w": 0.7,
+    "c1": 1.5,
+    "c2": 1.5
+  },
+  "bounds": { 
+    "vx": [-10.0, 10.0],
+    "vy": [-10.0, 10.0],
+    "vz": [-10.0, 10.0],
+    "dx": [0.0, 0.0],
+    "dy": [0.0, 0.0],
+    "dz": [0.0, 0.0]
+  },
+  "simulation_params": {
+    "max_duration_days": 7.0,
+    "dt_s": 600.0,
+    "snapshot_dt_s": 30.0
+  },
+  "weights": [1.0, 0.001, 0.001]
+}

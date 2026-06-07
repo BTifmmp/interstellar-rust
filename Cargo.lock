@@ -928,6 +928,8 @@ dependencies = [
  "macroquad",
  "rand",
  "rayon",
+ "serde",
+ "serde_json",
  "space-dust",
 ]
 
