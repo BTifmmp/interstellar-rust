@@ -34,21 +34,6 @@ impl SimulationWorld {
         self.update_rockets(dt_s);
     }
 
-    pub fn run_for(&mut self, duration_s: f64, dt_s: f64) {
-        let mut elapsed = 0.0;
-
-        while elapsed < duration_s {
-            let step_dt = if elapsed + dt_s > duration_s {
-                duration_s - elapsed
-            } else {
-                dt_s
-            };
-
-            self.step(step_dt);
-            elapsed += step_dt;
-        }
-    }
-
     fn update_bodies(&mut self) {
         let moon_pos = Moon::eci_position_km(&self.epoch);
 
@@ -64,21 +49,20 @@ impl SimulationWorld {
     }
 
     fn init_bodies() -> Vec<Body> {
-        let earth = Body {
-            body_id: BodyId::EARTH,
-            mu_km3_s2: Earth::MU_KM,
-            position_km: Vec3d::new(0.0, 0.0, 0.0),
-            radius_km: Earth::EQUATORIAL_RADIUS_KM,
-        };
-
-        let moon = Body {
-            body_id: BodyId::MOON,
-            mu_km3_s2: Moon::MU / 1e9,
-            position_km: Vec3d::new(0.0, 0.0, 0.0),
-            radius_km: Moon::RADIUS / 1000.0,
-        };
-
-        vec![earth, moon]
+        vec![
+            Body {
+                body_id: BodyId::EARTH,
+                mu_km3_s2: Earth::MU_KM,
+                position_km: Vec3d::new(0.0, 0.0, 0.0),
+                radius_km: Earth::EQUATORIAL_RADIUS_KM,
+            },
+            Body {
+                body_id: BodyId::MOON,
+                mu_km3_s2: Moon::MU / 1e9,
+                position_km: Vec3d::new(0.0, 0.0, 0.0),
+                radius_km: Moon::RADIUS / 1000.0,
+            },
+        ]
     }
 }
 
@@ -87,6 +71,39 @@ pub struct RocketState {
     pub time: f64,
     pub position_km: Vec3d,
     pub velocity_km: Vec3d,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct MoonState {
+    pub time: f64,            // sekundy od start_epoch
+    pub position_km: Vec3d,
+    pub velocity_km_s: Vec3d,
+}
+
+pub fn precompute_moon_states(
+    start_epoch: DateTime<Utc>,
+    snapshot_dt_s: f64,
+    num_snapshots: usize,
+) -> Vec<MoonState> {
+    let mut states = Vec::with_capacity(num_snapshots);
+    for i in 0..num_snapshots {
+        let t = i as f64 * snapshot_dt_s;
+        let epoch = start_epoch + chrono::Duration::nanoseconds((t * 1_000_000_000.0) as i64);
+        let pos = Moon::eci_position_km(&epoch);
+        let epoch_next = epoch + chrono::Duration::seconds(1);
+        let pos_next = Moon::eci_position_km(&epoch_next);
+        let vel = Vec3d::new(
+            (pos_next.x - pos.x) / 1.0,
+            (pos_next.y - pos.y) / 1.0,
+            (pos_next.z - pos.z) / 1.0,
+        );
+        states.push(MoonState {
+            time: t,
+            position_km: Vec3d::new(pos.x, pos.y, pos.z),
+            velocity_km_s: vel,
+        });
+    }
+    states
 }
 
 pub fn generate_rocket_trajectory(
