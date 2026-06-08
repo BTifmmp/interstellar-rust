@@ -1,10 +1,9 @@
 // src/algo/objective.rs
 use crate::algo::config::Config;
-use crate::simulation::objects::Rocket;
-use crate::simulation::world::{RocketState, TrajectoryGenerator};
+use crate::simulation::objects::{MoonState, RocketState};
+use crate::simulation::world::TrajectoryGenerator;
 use crate::util::geometry::{enu_to_cartesian_offset, geographic_to_cartesian};
 use crate::util::math::Vec3d;
-use chrono::{DateTime, Utc};
 use space_dust::bodies::{Earth, Moon};
 
 /// 1. Stan początkowy rakiety z parametrów PSO (vx,vy,vz, dx,dy,dz)
@@ -29,7 +28,7 @@ fn compute_start_state(params: &[f64], config: &Config) -> (Vec3d, Vec3d) {
 /// 2. Analiza trajektorii: minimalna odległość, prędkość końcowa, kolizje
 fn analyze_trajectory(
     trajectory: &[RocketState],
-    moon_states: &[crate::simulation::world::MoonState],
+    moon_states: &[MoonState],
     config: &Config,
 ) -> (f64, f64, bool, bool) {
     let earth_radius = Earth::EQUATORIAL_RADIUS_KM;
@@ -80,26 +79,15 @@ fn analyze_trajectory(
 }
 
 /// 3. Główna funkcja kosztu (optymalizowana przez PSO)
-pub fn cost_function(
-    params: &[f64],
-    start_epoch: DateTime<Utc>,
-    config: &Config,
-    traj_gen: &TrajectoryGenerator,
-) -> f64 {
+pub fn cost_function(params: &[f64], config: &Config, traj_gen: &TrajectoryGenerator) -> f64 {
     let (start_pos, start_vel) = compute_start_state(params, config);
-    let rocket = Rocket {
-        id: 0,
+    let rocket = RocketState {
+        time: 0.0,
         position_km: start_pos,
         velocity_km: start_vel,
     };
 
-    let duration_s = config.simulation_params.max_duration_days * 86400.0;
-    let dt_s = config.simulation_params.dt_s;
-    let snapshot_dt_s = config.simulation_params.snapshot_dt_s;
-    let trajectory = traj_gen.generate_rocket_trajectory(&rocket);
-
-    // let num_snapshots = trajectory.len();
-    // let moon_states = precompute_moon_states(start_epoch, snapshot_dt_s, num_snapshots);
+    let trajectory = traj_gen.generate_rocket_trajectory(rocket);
 
     let (best_dist, end_speed, collided_earth, _collided_moon) =
         analyze_trajectory(&trajectory, &traj_gen.moon_trajectory, config);
@@ -114,19 +102,15 @@ pub fn cost_function(
 /// 4. Generowanie trajektorii do wizualizacji (tylko pozycje)
 pub fn generate_trajectory_for_params(
     params: &[f64],
-    start_epoch: DateTime<Utc>,
     config: &Config,
-    traj_gen: &TrajectoryGenerator
+    traj_gen: &TrajectoryGenerator,
 ) -> Vec<Vec3d> {
     let (start_pos, start_vel) = compute_start_state(params, config);
-    let rocket = Rocket {
-        id: 0,
+    let rocket = RocketState {
+        time: 0.0,
         position_km: start_pos,
         velocity_km: start_vel,
     };
-    let duration_s = config.simulation_params.max_duration_days * 86400.0;
-    let dt_s = config.simulation_params.dt_s;
-    let snapshot_dt_s = config.simulation_params.snapshot_dt_s;
-    let traj = traj_gen.generate_rocket_trajectory(&rocket);
+    let traj = traj_gen.generate_rocket_trajectory(rocket);
     traj.into_iter().map(|s| s.position_km).collect()
 }
