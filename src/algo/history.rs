@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::fs;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -11,7 +11,7 @@ pub struct IterationRecord {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OptimizationHistory {
     pub config_snapshot: serde_json::Value, // przechowuje cały config w JSON
-    pub start_epoch: String,               // jako string ISO 8601
+    pub start_epoch: String,                // jako string ISO 8601
     pub records: Vec<IterationRecord>,
 }
 

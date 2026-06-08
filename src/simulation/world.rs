@@ -56,11 +56,11 @@ impl TrajectoryGenerator {
 }
 
 pub fn simplify_trajectory<T: Copy>(vec: &[T], every_nth: usize) -> Vec<T> {
-  vec.iter()
-  .enumerate()
-  .filter(|(i, _)| i % every_nth == 0)
-  .map(|(_, val)| *val)
-  .collect()
+    vec.iter()
+        .enumerate()
+        .filter(|(i, _)| i % every_nth == 0)
+        .map(|(_, val)| *val)
+        .collect()
 }
 
 pub fn precompute_moon_states(

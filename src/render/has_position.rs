@@ -1,4 +1,4 @@
-use crate::simulation::objects::{RocketState, MoonState};
+use crate::simulation::objects::{MoonState, RocketState};
 use crate::util::math::Vec3d;
 
 pub trait HasPosition {

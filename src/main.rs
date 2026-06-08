@@ -1,36 +1,27 @@
-use std::thread;
-use std::time::{Duration, Instant};
-
-use crate::algo::objective::generate_trajectory_for_params;
 use crate::render::camera::CameraController;
-use crate::render::drawing::{
-    draw_body, draw_hud, draw_moon_trajectory, draw_rocket, draw_rocket_trajectory,
-    draw_vec_trajectory,
-};
+use crate::render::drawing::{draw_hud, draw_trajectory};
+use crate::render::iteration_drawer::IterationDrawer;
 use crate::render::mouse::update_mouse_lock;
-use crate::simulation::world::{MoonState, precompute_moon_states};
+use crate::simulation::world::TrajectoryGenerator;
 use macroquad::prelude::*;
 mod algo;
 mod render;
 mod simulation;
 mod util;
+use crate::util::math::Vec3d;
 use algo::config::Config;
+use algo::history::{IterationRecord, OptimizationHistory};
 use algo::objective::cost_function;
 use algo::pso::Swarm;
-use simulation::world::TrajectoryGenerator;
-use space_dust::bodies::Earth; // Adjusted to match your space_dust path
-
-use crate::simulation::objects::Rocket;
-use crate::util::math::Vec3d;
 use chrono::Utc;
+use serde_json;
+use std::path::Path;
 
 #[macroquad::main("Orbital Simulation 3D")]
 async fn main() {
-    // 1. Wczytaj konfigurację
     let config = Config::from_file("config.json");
     let start_epoch = Utc::now();
 
-    // 2. Przygotuj zakresy dla PSO (6 wymiarów)
     let bounds = vec![
         (config.bounds.vx[0], config.bounds.vx[1]),
         (config.bounds.vy[0], config.bounds.vy[1]),
@@ -40,7 +31,6 @@ async fn main() {
         (config.bounds.dz[0], config.bounds.dz[1]),
     ];
 
-    // 3. Utwórz rój
     let mut swarm = Swarm::new(
         config.pso_params.num_particles,
         bounds,
@@ -49,99 +39,120 @@ async fn main() {
         config.pso_params.c2,
     );
 
-    let traj_gen =
-        TrajectoryGenerator::new(config.simulation_params.max_duration_days * 86400.0, 10.0);
-    
+    let traj_gen = TrajectoryGenerator::with_epoch(
+        start_epoch,
+        config.simulation_params.max_duration_days * 86400.0,
+        config.simulation_params.dt_s,
+    );
 
-    // 4. Definicja funkcji kosztu
-    let objective = |params: &[f64]| cost_function(params, start_epoch, &config, &traj_gen);
+    let objective = |params: &[f64]| cost_function(params, &config, &traj_gen);
 
-    println!("Rozpoczynam optymalizację PSO. To może potrwać kilkadziesiąt sekund...");
-    let (best_params, best_cost) = swarm.optimize(config.pso_params.max_iterations, &objective);
-    println!("Najlepsze parametry: {:?}", best_params);
-    println!("Najlepszy koszt: {}", best_cost);
+    let history_path = "pso_history.json";
+    let max_iterations = config.pso_params.max_iterations;
 
-    // // 5. Generuj trajektorie dla wszystkich cząstek (do rysowania roju)
-    let mut all_trajectories = Vec::new();
-    for particle in &swarm.particles {
-        let traj = generate_trajectory_for_params(&particle.position, start_epoch, &config, &traj_gen);
-        let every_nth: Vec<_> = traj
-          .iter()
-          .enumerate() // Daje nam (indeks, wartość)
-          .filter(|(i, _)| (i + 1) % 50 == 0) // Wybiera co n-ty
-          .map(|(_, val)| *val) // Wyciąga samą wartość
-          .collect();
-        all_trajectories.push(every_nth);
-    }
+    let history = if Path::new(history_path).exists() {
+        println!("Wczytywanie historii z pliku...");
+        let history = OptimizationHistory::load_from_file(history_path).unwrap();
+        println!("Wczytano {} iteracji.", history.records.len());
+        history
+    } else {
+        println!("Rozpoczynam optymalizację PSO...");
+        let mut records = Vec::new();
 
-    let best_traj = generate_trajectory_for_params(&best_params, start_epoch, &config, &traj_gen);
+        for iter in 0..max_iterations {
+            swarm.update(&objective);
 
-    let best_trajectory: Vec<Vec3d> = best_traj.iter()
-          .enumerate() // Daje nam (indeks, wartość)
-          .filter(|(i, _)| (i + 1) % 50 == 0) // Wybiera co n-ty
-          .map(|(_, val)| *val) // Wyciąga samą wartość
-          .collect();
-    
-    let simple_moon: Vec<MoonState> = traj_gen.moon_trajectory.iter() // BEZ & na początku
-        .enumerate()
-        .filter(|(i, _)| (i + 1) % 50 == 0)
-        .map(|(_, val)| val.clone()) // Używamy .clone() zamiast *val
-        .collect();
+            let mut best_cost_this_iter = f64::INFINITY;
+            let mut best_params_this_iter = Vec::new();
+            for particle in &swarm.particles {
+                let cost = objective(&particle.position);
+                if cost < best_cost_this_iter {
+                    best_cost_this_iter = cost;
+                    best_params_this_iter = particle.position.clone();
+                }
+            }
 
-    let mut cam_controller = CameraController::new(Vec3d::new(0.0, 0.0, 45000.0));
+            records.push(IterationRecord {
+                iteration: iter + 1,
+                best_cost: best_cost_this_iter,
+                best_params: best_params_this_iter,
+            });
 
-    let mut mouse_flag: bool = false;
+            println!(
+                "Iteracja {} / {} (najlepszy koszt w iteracji: {:.4})",
+                iter + 1,
+                max_iterations,
+                best_cost_this_iter
+            );
+        }
 
-    let frame = 0;
-    let target_fps = 400.0;
-    let frame_duration = 1.0 / target_fps;
+        let history = OptimizationHistory {
+            config_snapshot: serde_json::to_value(&config).unwrap(),
+            start_epoch: start_epoch.to_rfc3339(),
+            records,
+        };
+
+        history
+            .save_to_file(history_path)
+            .expect("Failed To save history");
+        println!("Historia zapisana do pliku.");
+        history
+    };
+
+    println!("Wyznaczanie trajektori do rysowania");
+    let mut iter_drawer = IterationDrawer::new(
+        &history,
+        config.simulation_params.dt_s,
+        300,
+        config.simulation_params.max_duration_days * 86400.0,
+        &config,
+    );
+
+    println!("Odtwarzanie symulacji");
+
+
+    let mut cam_controller = CameraController::new(Vec3d::new(0.0, 0.0, 80000.0));
+    let mut mouse_flag = false;
+
+    let mut sim_speed: f64 = 3600.0; // Prędkość symulacji (np. 1 sekunda realna = 3600 sekund symulacji)
+    let mut simulation_time: f64 = 0.0; // Czas wewnętrzny symulacji
 
     loop {
-        let frame_start = Instant::now();
+        clear_background(BLACK);
 
         match update_mouse_lock() {
             Some(should_lock) => mouse_flag = should_lock,
-            None => {} // FIXED: Enters an empty block to safely do nothing
+            None => {}
         }
 
-        if (mouse_flag) {
+        if is_key_pressed(KeyCode::Up) {
+            sim_speed = (sim_speed + 200.0).min(7200.0);
+        }
+        if is_key_pressed(KeyCode::Down) {
+            sim_speed = (sim_speed - 200.0).max(-7200.0);
+        }
+        if is_key_pressed(KeyCode::Space) {
+            sim_speed = 0.0;
+        }
+
+        if mouse_flag {
             cam_controller.update();
         }
 
-        clear_background(BLACK);
+        let dt_real = get_frame_time() as f64;
+        simulation_time += dt_real * sim_speed;
 
-        // for body in &world.bodies {
-        //     draw_body(&cam_controller.camera, body, BLUE);
-        // }
-
-        // // Rysowanie wszystkich trajektorii roju (szare)
-        for traj in &all_trajectories {
-            // Funkcja rysująca linię po punktach (możesz użyć draw_vec_trajectory)
-            draw_vec_trajectory(&cam_controller.camera, traj, DARKGRAY);
+        if simulation_time > iter_drawer.duration_s {
+            simulation_time = 0.0;
         }
 
+        simulation_time = simulation_time.max(0.0);
 
+        iter_drawer.set_time(simulation_time);
+        iter_drawer.draw(&cam_controller.camera);
 
-        // Rysowanie trajektorii Księżyca
-        draw_moon_trajectory(&cam_controller.camera, &simple_moon, DARKGRAY);
-
-        // POPRAWKA: Rysowanie najlepszej trajektorii znalezionej przez PSO zamiast starej testowej
-        draw_vec_trajectory(&cam_controller.camera, &best_trajectory, YELLOW);
-
-        // POPRAWKA: Odczyt pozycji żółtej rakiety z właściwego wektora best_trajectory
-        if let Some(current_state) = best_trajectory.get(frame) {
-            draw_rocket(&cam_controller.camera, *current_state, YELLOW);
-        }
-
-        // draw_hud(world.epoch);
+        draw_hud(start_epoch + chrono::Duration::milliseconds((simulation_time * 1000.0) as i64));
 
         next_frame().await;
-
-        let elapsed = frame_start.elapsed().as_secs_f64();
-        if elapsed < frame_duration {
-            thread::sleep(Duration::from_millis(
-                ((frame_duration - elapsed) as u64) * 1000,
-            ));
-        }
     }
 }

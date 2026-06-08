@@ -4,12 +4,6 @@ use crate::util::math::Vec3d;
 use chrono::{DateTime, Utc};
 use macroquad::prelude::*;
 
-pub fn draw_rocket(camera: &DrawCamera, position: Vec3d, color: Color) {
-    if let Some(screen_pos) = camera.world_to_screen(position) {
-        draw_circle(screen_pos.x, screen_pos.y, 4.0, color);
-    }
-}
-
 pub fn draw_object<T: HasPosition>(camera: &DrawCamera, obj: &T, radius: f64, color: Color) {
     if let Some(screen_pos) = camera.world_to_screen(obj.get_pos()) {
         let dist = (obj.get_pos() - camera.position_km).norm();

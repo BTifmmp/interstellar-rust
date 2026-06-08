@@ -12,8 +12,9 @@ pub struct Config {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct GeoPoint { //Reprezentuje punkt na powierzchni (lub nad nią) ciała niebieskiego
-    pub latitude_deg: f64, // w pionie
+pub struct GeoPoint {
+    //Reprezentuje punkt na powierzchni (lub nad nią) ciała niebieskiego
+    pub latitude_deg: f64,  // w pionie
     pub longitude_deg: f64, // w poziomie
     pub altitude_km: f64,
 }
