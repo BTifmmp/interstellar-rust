@@ -114,7 +114,7 @@ async fn main() {
     let mut cam_controller = CameraController::new(Vec3d::new(0.0, 0.0, 80000.0));
     let mut mouse_flag = false;
 
-    let mut sim_speed: f64 = 3600.0; // Prędkość symulacji (np. 1 sekunda realna = 3600 sekund symulacji)
+    let mut sim_speed: f64 = 1000.0; // Prędkość symulacji (np. 1 sekunda realna = 3600 sekund symulacji)
     let mut simulation_time: f64 = 0.0; // Czas wewnętrzny symulacji
 
     loop {

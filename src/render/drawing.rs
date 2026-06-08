@@ -14,7 +14,7 @@ pub fn draw_object<T: HasPosition>(camera: &DrawCamera, obj: &T, radius: f64, co
     }
 }
 
-pub fn draw_trajectory<T: HasPosition>(camera: &DrawCamera, trajectory: &[T], color: Color) {
+pub fn draw_trajectory_with_thickness<T: HasPosition>(camera: &DrawCamera, trajectory: &[T], color: Color, thickness: f32) {
     let mut last_screen_pos: Option<Vec2> = None;
 
     for obj in trajectory {
@@ -25,7 +25,7 @@ pub fn draw_trajectory<T: HasPosition>(camera: &DrawCamera, trajectory: &[T], co
                     prev_pos.y,
                     current_screen_pos.x,
                     current_screen_pos.y,
-                    1.0,
+                    thickness,
                     color,
                 );
             }
@@ -35,6 +35,10 @@ pub fn draw_trajectory<T: HasPosition>(camera: &DrawCamera, trajectory: &[T], co
         }
     }
 }
+
+pub fn draw_trajectory<T: HasPosition>(camera: &DrawCamera, trajectory: &[T], color: Color) {
+  draw_trajectory_with_thickness(camera, trajectory, color, 1.0);
+} 
 
 pub fn draw_hud(time: DateTime<Utc>) {
     draw_text(

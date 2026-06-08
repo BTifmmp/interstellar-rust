@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use macroquad::color::{BLUE, GRAY, WHITE, Color};
+use macroquad::color::{BLUE, Color, GRAY, WHITE, YELLOW};
 use space_dust::bodies::{Earth, Moon};
 
 use crate::{
@@ -8,7 +8,7 @@ use crate::{
     },
     render::{
         camera::DrawCamera,
-        drawing::{draw_object, draw_trajectory},
+        drawing::{draw_object, draw_trajectory, draw_trajectory_with_thickness},
     },
     simulation::{
         objects::MoonState,
@@ -33,6 +33,7 @@ pub struct IterationDrawer<'a, 'b> {
     simple_rocket_trajectories: Vec<Vec<Vec3d>>,
 
     traj_gen: TrajectoryGenerator,
+    best_cost_index: usize,
     pub config: &'b Config,
 }
 
@@ -60,6 +61,7 @@ impl<'a, 'b> IterationDrawer<'a, 'b> {
             simple_rocket_trajectories: Vec::new(),
             traj_gen: TrajectoryGenerator::with_epoch(date, duration_s, dt_s),
             config: config,
+            best_cost_index: 0
         };
 
         drawer.simulate_trajectories();
@@ -86,14 +88,26 @@ impl<'a, 'b> IterationDrawer<'a, 'b> {
 
         draw_trajectory(draw_camera, &self.simple_moon_trajectory, BLUE);
 
+
+
         // Rockets
         for (i, traj) in self.simple_rocket_trajectories.iter().enumerate() {
+            if i == self.best_cost_index {
+              draw_trajectory_with_thickness(draw_camera, traj, YELLOW, 4.0);
+              continue;
+            }
             draw_trajectory(draw_camera, traj, self.iteration_color(i, self.rocket_trajectories.len()));
         }
 
         for (i, traj) in self.rocket_trajectories.iter().enumerate() {
+            if i == self.best_cost_index {
+              if let Some(pos) = &self.get_rocket_pos_at_time(&traj) {
+                draw_object(draw_camera, pos, 500.0, YELLOW);
+              }
+              continue;
+            }
             if let Some(pos) = &self.get_rocket_pos_at_time(&traj) {
-                draw_object(draw_camera, pos, 1000.0, self.iteration_color(i, self.rocket_trajectories.len()));
+                draw_object(draw_camera, pos, 400.0, self.iteration_color(i, self.rocket_trajectories.len()));
             }
         }
     }
@@ -109,6 +123,15 @@ impl<'a, 'b> IterationDrawer<'a, 'b> {
                 .push(simplify_trajectory(&rocket_traj, self.every_nth));
             self.rocket_trajectories.push(rocket_traj);
         }
+
+       
+        for (i, record)in self.history.records.iter().enumerate() {
+          if let Some(rec) = self.history.records.get(self.best_cost_index) {
+            if record.best_cost < rec.best_cost {
+              self.best_cost_index = i;
+            }
+          }
+        }
     }
 
     fn get_rocket_pos_at_time(&self, traj: &[Vec3d]) -> Option<Vec3d> {
@@ -119,8 +142,8 @@ impl<'a, 'b> IterationDrawer<'a, 'b> {
     fn iteration_color(&self, iter: usize, max_iter: usize) -> Color {
         let t = iter as f32 / (max_iter - 1) as f32; // 0..1
         let r = 0.5 + t * 0.5;
-        let g = 0.5 * (1.0 - t);
-        let b = 0.5 * (1.0 - t);
+        let g = 0.5 + t * 0.5;
+        let b = 0.5 + t * 0.5;
         Color::new(r, g, b, 1.0)
       }
 
