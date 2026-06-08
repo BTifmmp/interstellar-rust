@@ -1,22 +1,8 @@
-use crate::simulation::objects::{Body, BodyId, Rocket};
+use crate::simulation::objects::{Body, MoonState, RocketState};
 use crate::simulation::propagator::rk4_step;
 use crate::util::math::Vec3d;
 use chrono::{DateTime, Utc};
 use space_dust::bodies::{Earth, Moon};
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct RocketState {
-    pub time: f64,
-    pub position_km: Vec3d,
-    pub velocity_km: Vec3d,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct MoonState {
-    pub time: f64, // sekundy od start_epoch
-    pub position_km: Vec3d,
-    pub velocity_km_s: Vec3d,
-}
 
 pub struct TrajectoryGenerator {
     pub moon_trajectory: Vec<MoonState>,
@@ -39,19 +25,15 @@ impl TrajectoryGenerator {
         }
     }
 
-    pub fn generate_rocket_trajectory(&self, rocket: &Rocket) -> Vec<RocketState> {
+    pub fn generate_rocket_trajectory(&self, rocket: RocketState) -> Vec<RocketState> {
         let earth = Body {
-            body_id: BodyId::EARTH,
             mu_km3_s2: Earth::MU_KM,
             position_km: Vec3d::new(0.0, 0.0, 0.0),
-            radius_km: Earth::EQUATORIAL_RADIUS_KM,
         };
 
         let mut moon = Body {
-            body_id: BodyId::MOON,
             mu_km3_s2: Moon::MU / 1e9,
             position_km: Vec3d::new(0.0, 0.0, 0.0),
-            radius_km: Moon::RADIUS / 1000.0,
         };
 
         let mut trajectory: Vec<RocketState> = Vec::with_capacity(self.moon_trajectory.len());
@@ -71,6 +53,14 @@ impl TrajectoryGenerator {
 
         trajectory
     }
+}
+
+pub fn simplify_trajectory<T: Copy>(vec: &[T], every_nth: usize) -> Vec<T> {
+  vec.iter()
+  .enumerate()
+  .filter(|(i, _)| i % every_nth == 0)
+  .map(|(_, val)| *val)
+  .collect()
 }
 
 pub fn precompute_moon_states(
