@@ -1,12 +1,11 @@
 // src/algo/objective.rs
 use crate::algo::config::Config;
 use crate::simulation::objects::{MoonState, RocketState};
-use crate::simulation::world::TrajectoryGenerator;
+use crate::simulation::world::{TrajectoryGenerator};
 use crate::util::geometry::{enu_to_cartesian_offset, geographic_to_cartesian};
 use crate::util::math::Vec3d;
 use space_dust::bodies::{Earth, Moon};
 
-/// 1. Stan początkowy rakiety z parametrów PSO (vx,vy,vz, dx,dy,dz)
 fn compute_start_state(params: &[f64], config: &Config) -> (Vec3d, Vec3d) {
     let (vx, vy, vz, dx, dy, dz) = (
         params[0], params[1], params[2], params[3], params[4], params[5],
@@ -25,7 +24,6 @@ fn compute_start_state(params: &[f64], config: &Config) -> (Vec3d, Vec3d) {
     (start_pos, start_vel)
 }
 
-/// 2. Analiza trajektorii: minimalna odległość, prędkość końcowa, kolizje
 fn analyze_trajectory(
     trajectory: &[RocketState],
     moon_states: &[MoonState],
@@ -79,7 +77,11 @@ fn analyze_trajectory(
 }
 
 /// 3. Główna funkcja kosztu (optymalizowana przez PSO)
-pub fn cost_function(params: &[f64], config: &Config, traj_gen: &TrajectoryGenerator) -> f64 {
+pub fn cost_function(
+    params: &[f64],
+    config: &Config,
+    traj_gen: &TrajectoryGenerator,
+) -> f64 {
     let (start_pos, start_vel) = compute_start_state(params, config);
     let rocket = RocketState {
         time: 0.0,
@@ -99,11 +101,10 @@ pub fn cost_function(params: &[f64], config: &Config, traj_gen: &TrajectoryGener
     w_dist * best_dist + w_start * start_speed + w_end * end_speed + collision_penalty
 }
 
-/// 4. Generowanie trajektorii do wizualizacji (tylko pozycje)
 pub fn generate_trajectory_for_params(
     params: &[f64],
     config: &Config,
-    traj_gen: &TrajectoryGenerator,
+    traj_gen: &TrajectoryGenerator
 ) -> Vec<Vec3d> {
     let (start_pos, start_vel) = compute_start_state(params, config);
     let rocket = RocketState {
