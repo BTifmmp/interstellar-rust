@@ -110,7 +110,6 @@ async fn main() {
 
     println!("Odtwarzanie symulacji");
 
-
     let mut cam_controller = CameraController::new(Vec3d::new(0.0, 0.0, 80000.0));
     let mut mouse_flag = false;
 

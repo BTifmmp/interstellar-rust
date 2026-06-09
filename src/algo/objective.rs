@@ -101,7 +101,7 @@ pub fn generate_trajectory_for_params(
     params: &[f64],
     config: &Config,
     traj_gen: &TrajectoryGenerator,
-) -> Vec<Vec3d> {
+) -> Vec<RocketState> {
     let (start_pos, start_vel) = compute_start_state(params, config);
     let rocket = RocketState {
         time: 0.0,
@@ -109,5 +109,5 @@ pub fn generate_trajectory_for_params(
         velocity_km: start_vel,
     };
     let traj = traj_gen.generate_rocket_trajectory(rocket);
-    traj.into_iter().map(|s| s.position_km).collect()
+    traj
 }

@@ -8,10 +8,10 @@ use crate::{
     },
     render::{
         camera::DrawCamera,
-        drawing::{draw_object, draw_trajectory, draw_trajectory_with_thickness},
+        drawing::{draw_object, draw_object_static_size, draw_text_label, draw_trajectory, draw_trajectory_with_thickness},
     },
     simulation::{
-        objects::MoonState,
+        objects::{MoonState, RocketState},
         world::{TrajectoryGenerator, simplify_trajectory},
     },
     util::math::Vec3d,
@@ -29,8 +29,8 @@ pub struct IterationDrawer<'a, 'b> {
     pub moon_trajectory: Vec<MoonState>,
     simple_moon_trajectory: Vec<MoonState>,
 
-    rocket_trajectories: Vec<Vec<Vec3d>>,
-    simple_rocket_trajectories: Vec<Vec<Vec3d>>,
+    rocket_trajectories: Vec<Vec<RocketState>>,
+    simple_rocket_trajectories: Vec<Vec<RocketState>>,
 
     traj_gen: TrajectoryGenerator,
     best_cost_index: usize,
@@ -61,7 +61,7 @@ impl<'a, 'b> IterationDrawer<'a, 'b> {
             simple_rocket_trajectories: Vec::new(),
             traj_gen: TrajectoryGenerator::with_epoch(date, duration_s, dt_s),
             config: config,
-            best_cost_index: 0
+            best_cost_index: 0,
         };
 
         drawer.simulate_trajectories();
@@ -88,26 +88,36 @@ impl<'a, 'b> IterationDrawer<'a, 'b> {
 
         draw_trajectory(draw_camera, &self.simple_moon_trajectory, BLUE);
 
-
-
         // Rockets
         for (i, traj) in self.simple_rocket_trajectories.iter().enumerate() {
             if i == self.best_cost_index {
-              draw_trajectory_with_thickness(draw_camera, traj, YELLOW, 4.0);
-              continue;
+                draw_trajectory_with_thickness(draw_camera, traj, YELLOW, 4.0);
+                continue;
             }
-            draw_trajectory(draw_camera, traj, self.iteration_color(i, self.rocket_trajectories.len()));
+            draw_trajectory(
+                draw_camera,
+                traj,
+                self.iteration_color(i, self.rocket_trajectories.len()),
+            );
         }
 
         for (i, traj) in self.rocket_trajectories.iter().enumerate() {
             if i == self.best_cost_index {
-              if let Some(pos) = &self.get_rocket_pos_at_time(&traj) {
-                draw_object(draw_camera, pos, 500.0, YELLOW);
-              }
-              continue;
+                if let Some(pos) = &self.get_rocket_pos_at_time(&traj) {
+                    draw_object_static_size(draw_camera, pos, 5.0, YELLOW);
+                    draw_text_label(
+                        draw_camera,
+                        pos,
+                        &format!("{:.2}", pos.velocity_km.norm()),
+                        30.0,
+                        20.0,
+                        YELLOW,
+                    )
+                }
+                continue;
             }
             if let Some(pos) = &self.get_rocket_pos_at_time(&traj) {
-                draw_object(draw_camera, pos, 400.0, self.iteration_color(i, self.rocket_trajectories.len()));
+                draw_object_static_size(draw_camera, pos, 3.0, self.iteration_color(i, self.rocket_trajectories.len()));
             }
         }
     }
@@ -124,17 +134,16 @@ impl<'a, 'b> IterationDrawer<'a, 'b> {
             self.rocket_trajectories.push(rocket_traj);
         }
 
-       
-        for (i, record)in self.history.records.iter().enumerate() {
-          if let Some(rec) = self.history.records.get(self.best_cost_index) {
-            if record.best_cost < rec.best_cost {
-              self.best_cost_index = i;
+        for (i, record) in self.history.records.iter().enumerate() {
+            if let Some(rec) = self.history.records.get(self.best_cost_index) {
+                if record.best_cost < rec.best_cost {
+                    self.best_cost_index = i;
+                }
             }
-          }
         }
     }
 
-    fn get_rocket_pos_at_time(&self, traj: &[Vec3d]) -> Option<Vec3d> {
+    fn get_rocket_pos_at_time(&self, traj: &[RocketState]) -> Option<RocketState> {
         let idx = (self.current_time / self.dt_s) as usize;
         traj.get(idx).cloned()
     }
@@ -145,8 +154,7 @@ impl<'a, 'b> IterationDrawer<'a, 'b> {
         let g = 0.5 + t * 0.5;
         let b = 0.5 + t * 0.5;
         Color::new(r, g, b, 1.0)
-      }
-
+    }
 
     fn get_moon_pos_at_time(&self) -> Option<Vec3d> {
         let idx = (self.current_time / self.dt_s) as usize;

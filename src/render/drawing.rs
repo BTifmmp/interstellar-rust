@@ -14,7 +14,18 @@ pub fn draw_object<T: HasPosition>(camera: &DrawCamera, obj: &T, radius: f64, co
     }
 }
 
-pub fn draw_trajectory_with_thickness<T: HasPosition>(camera: &DrawCamera, trajectory: &[T], color: Color, thickness: f32) {
+pub fn draw_object_static_size<T: HasPosition>(camera: &DrawCamera, obj: &T, radius: f32, color: Color) {
+    if let Some(screen_pos) = camera.world_to_screen(obj.get_pos()) {
+        draw_circle(screen_pos.x, screen_pos.y, radius, color);
+    }
+}
+
+pub fn draw_trajectory_with_thickness<T: HasPosition>(
+    camera: &DrawCamera,
+    trajectory: &[T],
+    color: Color,
+    thickness: f32,
+) {
     let mut last_screen_pos: Option<Vec2> = None;
 
     for obj in trajectory {
@@ -37,8 +48,27 @@ pub fn draw_trajectory_with_thickness<T: HasPosition>(camera: &DrawCamera, traje
 }
 
 pub fn draw_trajectory<T: HasPosition>(camera: &DrawCamera, trajectory: &[T], color: Color) {
-  draw_trajectory_with_thickness(camera, trajectory, color, 1.0);
-} 
+    draw_trajectory_with_thickness(camera, trajectory, color, 1.0);
+}
+
+pub fn draw_text_label<T: HasPosition>(
+    camera: &DrawCamera,
+    obj: &T,
+    text: &str,
+    font_size: f32,
+    offset_y: f32,
+    color: Color,
+) {
+    if let Some(screen_pos) = camera.world_to_screen(obj.get_pos()) {
+        draw_text(
+            text,
+            screen_pos.x,
+            screen_pos.y + offset_y,
+            font_size,
+            color,
+        );
+    }
+}
 
 pub fn draw_hud(time: DateTime<Utc>) {
     draw_text(
