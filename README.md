@@ -49,7 +49,7 @@ interstellar_rust/
 
 - **Grawitacja:** Model uwzględnia grawitację Ziemi i Księżyca (stałe parametry grawitacyjne $\mu$). Dokładna pozycja Księżyca w czasie pobierana jest z precyzyjnych efemeryd za pomocą biblioteki `space-dust`.
 - **Propagacja Stanu:** Wykorzystano klasyczną metodę **Runge-Kutta 4** z konfigurowalnym krokiem czasowym `dt_s` (domyślnie `5.0` sekund).
-- **Obsługa Kolizji:** Uderzenie w Ziemię skutkuje natychmiastowym nałożeniem ogromnej kary grawitacyjnej (`1e9`). Kontakt z powierzchnią Księżyca nie nakłada kary.
+- **Obsługa Kolizji:** Uderzenie w Ziemię skutkuje natychmiastowym nałożeniem ogromnej kary grawitacyjnej (`1e9`). Kontakt z powierzchnią Księżyca nie nakłada kary (traktowany jako potencjalne lądowanie).
 - **Cel:** Dowolny zdefiniowany punkt na powierzchni Księżyca (`target_point`).
 
 ### 📐 Parametry Optymalizowane (6 Wymiarów)
@@ -63,7 +63,7 @@ interstellar_rust/
 |   `dy`   | Przesunięcie startowe na północ                       |    km     |
 |   `dz`   | Wysokość startowa nad średnim poziomem morza          |    km     |
 
-> Do prędkości zdefiniowanej w układzie ENU system automatycznie dodaje **prędkość wynikającą z ruchu obrotowego Ziemi** (dla doby gwiazdowej $\sim$ 23h 56m 4s), co wiernie symuluje start z rzeczywistej powierzchni planety.
+> **Informacja: ** Do prędkości zdefiniowanej w układzie ENU system automatycznie dodaje **prędkość wynikającą z ruchu obrotowego Ziemi** (dla doby gwiazdowej $\sim$ 23h 56m 4s), co wiernie symuluje start z rzeczywistej powierzchni planety.
 
 ### 📊 Funkcja Kosztu
 
