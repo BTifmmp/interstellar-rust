@@ -49,7 +49,7 @@ pub fn draw_hud(time: DateTime<Utc>) {
         WHITE,
     );
     draw_text(
-        "Controls: WASD to Move | Mouse to Look | ESC to Release Mouse",
+        "Controls: WASD to Move | Mouse to Look | ESC to Release Mouse | Arrow UP / DOWN to adjust speed",
         10.0,
         40.0,
         14.0,

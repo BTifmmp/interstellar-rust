@@ -10,8 +10,8 @@
     "altitude_km": 0.0
   },
   "pso_params": {
-    "num_particles": 50,
-    "max_iterations": 30,
+    "num_particles": 20,
+    "max_iterations": 40,
     "w": 0.8,
     "c1": 1.5,
     "c2": 1.5
@@ -25,9 +25,9 @@
     "dz": [0.0, 0.0]
   },
   "simulation_params": {
-    "max_duration_days": 30.0,
+    "max_duration_days": 60.0,
     "dt_s": 5.0,
-    "every_nth": 300
+    "every_nth": 400
   },
   "weights": [1.0, 5.0, 10.0]
 }
