@@ -2,7 +2,7 @@
 use crate::algo::config::Config;
 use crate::simulation::objects::{MoonState, RocketState};
 use crate::simulation::world::TrajectoryGenerator;
-use crate::util::geometry::{enu_to_cartesian_offset, geographic_to_cartesian};
+use crate::util::geometry::{enu_vector_to_cartesian, geographic_to_cartesian, earth_rotation_velocity};
 use crate::util::math::Vec3d;
 use space_dust::bodies::{Earth, Moon};
 
@@ -18,9 +18,11 @@ fn compute_start_state(params: &[f64], config: &Config) -> (Vec3d, Vec3d) {
         config.start_point.longitude_deg,
         start_radius,
     );
-    let offset = enu_to_cartesian_offset(base_pos, dx, dy, dz);
+    let offset = enu_vector_to_cartesian(base_pos, dx, dy, dz);
     let start_pos = base_pos + offset;
-    let start_vel = Vec3d::new(vx, vy, vz);
+    let start_vel = enu_vector_to_cartesian(base_pos, vx, vy, vz);
+    let rotation_vel = earth_rotation_velocity(base_pos);
+    let start_vel = start_vel + rotation_vel;
     (start_pos, start_vel)
 }
 
