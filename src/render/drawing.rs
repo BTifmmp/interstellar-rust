@@ -14,7 +14,12 @@ pub fn draw_object<T: HasPosition>(camera: &DrawCamera, obj: &T, radius: f64, co
     }
 }
 
-pub fn draw_object_static_size<T: HasPosition>(camera: &DrawCamera, obj: &T, radius: f32, color: Color) {
+pub fn draw_object_static_size<T: HasPosition>(
+    camera: &DrawCamera,
+    obj: &T,
+    radius: f32,
+    color: Color,
+) {
     if let Some(screen_pos) = camera.world_to_screen(obj.get_pos()) {
         draw_circle(screen_pos.x, screen_pos.y, radius, color);
     }

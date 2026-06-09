@@ -2,7 +2,9 @@
 use crate::algo::config::Config;
 use crate::simulation::objects::{MoonState, RocketState};
 use crate::simulation::world::TrajectoryGenerator;
-use crate::util::geometry::{enu_vector_to_cartesian, geographic_to_cartesian, earth_rotation_velocity};
+use crate::util::geometry::{
+    earth_rotation_velocity, enu_vector_to_cartesian, geographic_to_cartesian,
+};
 use crate::util::math::Vec3d;
 use space_dust::bodies::{Earth, Moon};
 
@@ -55,19 +57,19 @@ fn analyze_trajectory(
             collided_earth = true;
             break;
         }
+
         // Kolizja z Księżycem → koniec, ale bez dodatkowej kary (sukces)
+        let target_pos = moon.position_km + target_offset;
+        let dist = (state.position_km - target_pos).norm();
         let dist_to_moon_center = (state.position_km - moon.position_km).norm();
         if dist_to_moon_center < moon_radius {
             collided_moon = true;
             // minimalna odległość staje się 0, ale zachowujemy prędkość w momencie zderzenia
-            best_dist = 0.0;
+            best_dist = dist;
             let rel_vel = state.velocity_km - moon.velocity_km_s;
             end_speed = rel_vel.norm();
             break;
         }
-
-        let target_pos = moon.position_km + target_offset;
-        let dist = (state.position_km - target_pos).norm();
         if dist < best_dist {
             best_dist = dist;
             let rel_vel = state.velocity_km - moon.velocity_km_s;
@@ -96,7 +98,10 @@ pub fn cost_function(params: &[f64], config: &Config, traj_gen: &TrajectoryGener
     let collision_penalty = if collided_earth { 1e9 } else { 0.0 };
     let (w_dist, w_start, w_end) = (config.weights[0], config.weights[1], config.weights[2]);
 
-    (2000.0 / w_dist + best_dist) * end_speed.powf(w_end) * start_vel.powf(w_start) + collision_penalty
+    (w_dist * best_dist / 200.0)
+        + (w_end * end_speed / 2.3)
+        + (w_start * start_vel / 11.0)
+        + collision_penalty
 }
 
 pub fn generate_trajectory_for_params(

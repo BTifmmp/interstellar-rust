@@ -8,13 +8,16 @@ use crate::{
     },
     render::{
         camera::DrawCamera,
-        drawing::{draw_object, draw_object_static_size, draw_text_label, draw_trajectory, draw_trajectory_with_thickness},
+        drawing::{
+            draw_object, draw_object_static_size, draw_text_label, draw_trajectory,
+            draw_trajectory_with_thickness,
+        },
     },
     simulation::{
         objects::{MoonState, RocketState},
         world::{TrajectoryGenerator, simplify_trajectory},
     },
-    util::math::Vec3d,
+    util::{geometry::geographic_to_cartesian, math::Vec3d},
 };
 
 pub struct IterationDrawer<'a, 'b> {
@@ -101,6 +104,15 @@ impl<'a, 'b> IterationDrawer<'a, 'b> {
             );
         }
 
+    let moon_radius = Moon::RADIUS / 1000.0;
+    let target_offset = geographic_to_cartesian(
+        self.config.target_point.latitude_deg,
+        self.config.target_point.longitude_deg,
+        moon_radius + self.config.target_point.altitude_km,
+    );
+
+
+
         for (i, traj) in self.rocket_trajectories.iter().enumerate() {
             if i == self.best_cost_index {
                 if let Some(pos) = &self.get_rocket_pos_at_time(&traj) {
@@ -112,12 +124,37 @@ impl<'a, 'b> IterationDrawer<'a, 'b> {
                         30.0,
                         20.0,
                         YELLOW,
+                    );
+
+                    let def_moon = MoonState {
+                        time: 0.0,
+                        position_km: Vec3d::new(0.0, 0.0, 0.0),
+                        velocity_km_s: Vec3d::new(0.0, 0.0, 0.0),
+                    };
+                    let target_pos = (self.get_moon_pos_at_time().unwrap_or(def_moon.position_km)) + target_offset;
+                    let dist = (pos.position_km - target_pos).norm();
+                    
+                    draw_text_label(
+                        draw_camera,
+                        pos,
+                        &format!(
+                            "{:.2}",
+                            dist
+                        ),
+                        30.0,
+                        -40.0,
+                        YELLOW,
                     )
                 }
                 continue;
             }
             if let Some(pos) = &self.get_rocket_pos_at_time(&traj) {
-                draw_object_static_size(draw_camera, pos, 3.0, self.iteration_color(i, self.rocket_trajectories.len()));
+                draw_object_static_size(
+                    draw_camera,
+                    pos,
+                    3.0,
+                    self.iteration_color(i, self.rocket_trajectories.len()),
+                );
             }
         }
     }
