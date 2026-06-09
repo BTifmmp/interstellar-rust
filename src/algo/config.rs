@@ -42,7 +42,7 @@ pub struct Bounds {
 pub struct SimulationParams {
     pub max_duration_days: f64, // maksymalny czas trwania symulacji (w dniach)
     pub dt_s: f64,              // krok całkowania w propagacji RK4 (w sekundach)
-    pub snapshot_dt_s: f64, //  interwał, z jakim zapisujemy stany do trajektorii (co ile sekund)
+    pub every_nth: f64,
 }
 
 impl Config {

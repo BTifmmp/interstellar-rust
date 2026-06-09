@@ -103,7 +103,7 @@ async fn main() {
     let mut iter_drawer = IterationDrawer::new(
         &history,
         config.simulation_params.dt_s,
-        300,
+        config.simulation_params.every_nth,
         config.simulation_params.max_duration_days * 86400.0,
         &config,
     );
