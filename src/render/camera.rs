@@ -105,14 +105,6 @@ impl CameraController {
             self.camera.position_km -= right * frame_speed;
         }
 
-        let world_up = Vec3d::new(0.0, 1.0, 0.0);
-        if is_key_down(KeyCode::Space) {
-            self.camera.position_km += world_up * frame_speed;
-        }
-        if is_key_down(KeyCode::LeftShift) {
-            self.camera.position_km -= world_up * frame_speed;
-        }
-
         let delta = mouse_delta_position();
 
         self.camera.yaw -= delta.x as f64 * self.sensitivity;
