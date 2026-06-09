@@ -23,15 +23,23 @@ impl Swarm {
     pub fn new(num_particles: usize, bounds: Vec<(f64, f64)>, w: f64, c1: f64, c2: f64) -> Self {
         let dims = bounds.len();
         let mut rng = rand::thread_rng();
+
+        let points_per_dim = (num_particles as f64).powf(2.0 / dims as f64).ceil() as usize;
         let particles = (0..num_particles)
-            .map(|_| {
+            .map(|i| {
+                let mut grid_coords = i;
                 let position: Vec<f64> = (0..dims)
-                    .map(|i| {
-                        let (min, max) = bounds[i];
-                        if (min - max).abs() < 1e-12 {
-                            min // zakres zerowy – zwróć stałą wartość
+                    .map(|j| {
+                        let (min, max) = bounds[j];
+                        if (max - min).abs() < 1e-12 {
+                            return min;
+                        }
+                        let idx_in_dim = grid_coords % points_per_dim;
+                        grid_coords /= points_per_dim;
+                        if points_per_dim > 1 {
+                            min + (idx_in_dim as f64) * (max - min) / ((points_per_dim - 1) as f64)
                         } else {
-                            rng.gen_range(min..max)
+                            min
                         }
                     })
                     .collect();
