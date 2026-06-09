@@ -150,9 +150,9 @@ impl<'a, 'b> IterationDrawer<'a, 'b> {
 
     fn iteration_color(&self, iter: usize, max_iter: usize) -> Color {
         let t = iter as f32 / (max_iter - 1) as f32; // 0..1
-        let r = 0.5 + t * 0.5;
-        let g = 0.5 + t * 0.5;
-        let b = 0.5 + t * 0.5;
+        let r = 0.2 + t * 0.8;
+        let g = 0.2 + t * 0.8;
+        let b = 0.2 + t * 0.8;
         Color::new(r, g, b, 1.0)
     }
 

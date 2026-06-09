@@ -92,11 +92,11 @@ pub fn cost_function(params: &[f64], config: &Config, traj_gen: &TrajectoryGener
     let (best_dist, end_speed, collided_earth, _collided_moon) =
         analyze_trajectory(&trajectory, &traj_gen.moon_trajectory, config);
 
-    let start_speed = start_vel.norm();
+    let start_vel = start_vel.norm();
     let collision_penalty = if collided_earth { 1e9 } else { 0.0 };
     let (w_dist, w_start, w_end) = (config.weights[0], config.weights[1], config.weights[2]);
 
-    w_dist * best_dist + w_start * start_speed + w_end * end_speed + collision_penalty
+    (2000.0 / w_dist + best_dist) * end_speed.powf(w_end) * start_vel.powf(w_start) + collision_penalty
 }
 
 pub fn generate_trajectory_for_params(
