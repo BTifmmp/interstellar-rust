@@ -1,4 +1,3 @@
-// src/algo/objective.rs
 use crate::algo::config::Config;
 use crate::simulation::objects::{MoonState, RocketState};
 use crate::simulation::world::TrajectoryGenerator;

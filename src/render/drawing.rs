@@ -1,6 +1,5 @@
 use crate::render::camera::DrawCamera;
 use crate::render::has_position::HasPosition;
-use crate::util::math::Vec3d;
 use chrono::{DateTime, Utc};
 use macroquad::prelude::*;
 

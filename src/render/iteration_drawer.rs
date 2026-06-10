@@ -1,5 +1,5 @@
-use chrono::{DateTime, Utc};
-use macroquad::color::{BLUE, Color, GRAY, WHITE, YELLOW};
+use chrono::DateTime;
+use macroquad::color::{BLUE, Color, YELLOW};
 use space_dust::bodies::{Earth, Moon};
 
 use crate::{

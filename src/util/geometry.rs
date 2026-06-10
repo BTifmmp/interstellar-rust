@@ -1,15 +1,11 @@
 use crate::util::math::Vec3d;
 
-/// - `base_cart`: pozycja punktu bazowego (środek Ziemi + promień + wysokość bazowa) w układzie geocentrycznym.
-/// - `east`: przesunięcie na wschód (km)
-/// - `north`: przesunięcie na północ (km)
-/// - `up`: wysokość nad powierzchnią (km) (dodatnia w górę)
 pub fn enu_vector_to_cartesian(base_cart: Vec3d, east: f64, north: f64, up: f64) -> Vec3d {
     let r = base_cart.norm();
     if r < 1e-6 {
         return Vec3d::new(0.0, 0.0, 0.0);
     }
-    // Oblicz szerokość i długość geograficzną punktu bazowego (zakładając kulistą Ziemię)
+    // Oblicz szerokość i długość geograficzną punktu bazowego
     let lat = (base_cart.y / r).asin();
     let lon = base_cart.z.atan2(base_cart.x);
     let sin_lat = lat.sin();
@@ -25,8 +21,6 @@ pub fn enu_vector_to_cartesian(base_cart: Vec3d, east: f64, north: f64, up: f64)
     east_vec * east + north_vec * north + up_vec * up
 }
 
-/// Zamienia współrzędne geograficzne (stopnie) na wektor kartezjański (km)
-/// `radius_km` – odległość od środka planety (np. promień + wysokość)
 pub fn geographic_to_cartesian(latitude_deg: f64, longitude_deg: f64, radius_km: f64) -> Vec3d {
     let lat = latitude_deg.to_radians();
     let lon = longitude_deg.to_radians();
@@ -37,13 +31,9 @@ pub fn geographic_to_cartesian(latitude_deg: f64, longitude_deg: f64, radius_km:
 }
 
 pub fn earth_rotation_velocity(point_cart: Vec3d) -> Vec3d {
-    let omega = 2.0 * std::f64::consts::PI / 86164.0; // rad/s (dzień gwiazdowy ~23h56m4s)
-    // v = ω × r
+    let omega = 2.0 * std::f64::consts::PI / 86164.0;
     Vec3d::new(
-        -omega * point_cart.y, // ω = (0,0,omega) → ω × r = ( -ω*rz, 0, ω*rx )? Poprawne:
-        // Poprawny iloczyn wektorowy dla ω = (0,0,ω) i r = (x,y,z) daje ( -ω*y, ω*x, 0 )
-        // Ale Ziemia obraca się wokół osi Y? W astronomii oś Z to oś obrotu. Ustalmy:
-        // ω = (0,0,omega). Wtedy ω × r = ( -omega*y, omega*x, 0 ).
+        -omega * point_cart.y,
         -omega * point_cart.x,
         0.0,
     )
