@@ -65,12 +65,6 @@ async fn main() {
             let mut best_cost_this_iter = f64::INFINITY;
             let mut best_params_this_iter = Vec::new();
 
-            let objective_dist = if !best_params_this_iter.is_empty() {
-                get_min_distance(&best_params_this_iter, &config, &traj_gen)
-                } else {
-                    f64::INFINITY
-                };
-
             for particle in &swarm.particles {
                 let cost = objective(&particle.position);
                 if cost < best_cost_this_iter {
@@ -78,6 +72,12 @@ async fn main() {
                     best_params_this_iter = particle.position.clone();
                 }
             }
+
+            let objective_dist = if !best_params_this_iter.is_empty() {
+                get_min_distance(&best_params_this_iter, &config, &traj_gen)
+                } else {
+                    f64::INFINITY
+                };
 
             records.push(IterationRecord {
                 iteration: iter + 1,
