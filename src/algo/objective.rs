@@ -117,3 +117,15 @@ pub fn generate_trajectory_for_params(
     let traj = traj_gen.generate_rocket_trajectory(rocket);
     traj
 }
+
+pub fn get_min_distance(params: &[f64], config: &Config, traj_gen: &TrajectoryGenerator) -> f64 {
+    let (start_pos, start_vel) = compute_start_state(params, config);
+    let rocket = RocketState {
+        time: 0.0,
+        position_km: start_pos,
+        velocity_km: start_vel,
+    };
+    let trajectory = traj_gen.generate_rocket_trajectory(rocket);
+    let (best_dist, _, _, _) = analyze_trajectory(&trajectory, &traj_gen.moon_trajectory, config);
+    best_dist
+}

@@ -1,3 +1,4 @@
+
 use chrono::DateTime;
 use macroquad::color::{BLUE, Color, YELLOW};
 use space_dust::bodies::{Earth, Moon};
@@ -104,14 +105,19 @@ impl<'a, 'b> IterationDrawer<'a, 'b> {
             );
         }
 
-    let moon_radius = Moon::RADIUS / 1000.0;
-    let target_offset = geographic_to_cartesian(
-        self.config.target_point.latitude_deg,
-        self.config.target_point.longitude_deg,
-        moon_radius + self.config.target_point.altitude_km,
-    );
+        let moon_radius = Moon::RADIUS / 1000.0;
+        let target_offset = geographic_to_cartesian(
+            self.config.target_point.latitude_deg,
+            self.config.target_point.longitude_deg,
+            moon_radius + self.config.target_point.altitude_km,
+        );
 
+        let target_pos = self
+            .get_moon_pos_at_time()
+            .unwrap_or(Vec3d::new(0.0, 0.0, 0.0))
+            + target_offset;
 
+        draw_object(draw_camera, &target_pos, 200.0, RED);
 
         for (i, traj) in self.rocket_trajectories.iter().enumerate() {
             if i == self.best_cost_index {
@@ -131,16 +137,14 @@ impl<'a, 'b> IterationDrawer<'a, 'b> {
                         position_km: Vec3d::new(0.0, 0.0, 0.0),
                         velocity_km_s: Vec3d::new(0.0, 0.0, 0.0),
                     };
-                    let target_pos = (self.get_moon_pos_at_time().unwrap_or(def_moon.position_km)) + target_offset;
+                    let target_pos = (self.get_moon_pos_at_time().unwrap_or(def_moon.position_km))
+                        + target_offset;
                     let dist = (pos.position_km - target_pos).norm();
-                    
+
                     draw_text_label(
                         draw_camera,
                         pos,
-                        &format!(
-                            "{:.2}",
-                            dist
-                        ),
+                        &format!("{:.2}", dist),
                         30.0,
                         -40.0,
                         YELLOW,

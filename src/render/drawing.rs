@@ -3,13 +3,19 @@ use crate::render::has_position::HasPosition;
 use chrono::{DateTime, Utc};
 use macroquad::prelude::*;
 
-pub fn draw_object<T: HasPosition>(camera: &DrawCamera, obj: &T, radius: f64, color: Color) {
+pub fn draw_object<T: HasPosition>(camera: &DrawCamera, obj: &T, radius_km: f64, color: Color) {
     if let Some(screen_pos) = camera.world_to_screen(obj.get_pos()) {
-        let dist = (obj.get_pos() - camera.position_km).norm();
-        let screen_h = screen_height() as f64;
-        let radius = ((radius / dist) * camera.fov * screen_h) as f32;
+        let obj_pos = obj.get_pos();
+        let right_vec = camera.right();
+        let edge_pos = obj_pos + right_vec * radius_km;
+        if let (Some(center), Some(edge)) = (
+            camera.world_to_screen(obj_pos),
+            camera.world_to_screen(edge_pos),
+        ) {
+            let screen_radius = Vec2::distance(center, edge);
 
-        draw_circle(screen_pos.x, screen_pos.y, radius, color);
+            draw_circle(screen_pos.x, screen_pos.y, screen_radius, color);
+        }
     }
 }
 

@@ -10,8 +10,8 @@
     "altitude_km": 0.0
   },
   "pso_params": {
-    "num_particles": 200,
-    "max_iterations": 30,
+    "num_particles": 20,
+    "max_iterations": 5,
     "w": 0.4,
     "c1": 1.5,
     "c2": 1.5
