@@ -8,7 +8,7 @@ pub struct Config {
     pub pso_params: PsoParams, // parametry PSO (liczba cząsteczek, liczba iteracji, współczynniki(w-bezwładność, c1-siła przyciągania do lokalnego najlepszego wyniku, c2-siła przyciągania cząsteczki do globalnego najlepszego wyniku))
     pub bounds: Bounds,        // zakres poszukiwań
     pub simulation_params: SimulationParams, // parametry symulacji fizycznej
-    pub weights: [f64; 3], // wagi dla funkcji kosztu(waga_odległości, waga_prędkości_startowej, waga_prędkości_końcowej)
+    pub weights: [f64; 2], // wagi dla funkcji kosztu(waga_odległości, waga_prędkości_startowej, waga_prędkości_końcowej)
 }
 
 #[derive(Debug, Deserialize, Serialize)]
