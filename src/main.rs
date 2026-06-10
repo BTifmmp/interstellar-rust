@@ -1,5 +1,5 @@
 use crate::render::camera::CameraController;
-use crate::render::drawing::{draw_hud, draw_trajectory};
+use crate::render::drawing::draw_hud;
 use crate::render::iteration_drawer::IterationDrawer;
 use crate::render::mouse::update_mouse_lock;
 use crate::simulation::world::TrajectoryGenerator;

@@ -1,4 +1,3 @@
-// src/algo/pso.rs
 use rand::Rng;
 
 #[derive(Debug, Clone)]
