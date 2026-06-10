@@ -135,7 +135,7 @@ _Jeśli plik `pso_history.json` jest obecny w katalogu głównym, faza PSO zosta
 |                   <kbd>ESC</kbd>                    | Zwolnienie blokady myszy (przywrócenie kursora systemowego) |
 |             <kbd>Strzałka w Górę</kbd>              | Zwiększenie tempa upływu czasu symulacji                    |
 |              <kbd>Strzałka w Dół</kbd>              | Zmniejszenie tempa upływu czasu symulacji                   |
-|                  <kbd>Spacja</kbd>                  | Pauza / Wznowienie odtwarzania symulacji (czas = 0)         |
+|                  <kbd>Spacja</kbd>                  | Pauza (czas = 0)                                            |
 
 ---
 

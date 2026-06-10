@@ -38,6 +38,7 @@ impl TrajectoryGenerator {
 
         let mut trajectory: Vec<RocketState> = Vec::with_capacity(self.moon_trajectory.len());
         let mut rocket_cp = rocket.clone();
+        trajectory.push(rocket_cp.clone());
 
         for &moon_state in &self.moon_trajectory {
             moon.position_km = moon_state.position_km;

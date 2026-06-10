@@ -1,13 +1,12 @@
-use macroquad::prelude::*;
-
 use crate::util::math::Vec3d;
+use macroquad::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct DrawCamera {
-    pub position_km: Vec3d, // Where the camera is in the world (km)
-    pub yaw: f64,           // Rotation left/right (radians)s
-    pub pitch: f64,         // Rotation up/down (radians)
-    pub fov: f64,           // Field of View zoom factor
+    pub position_km: Vec3d,
+    pub yaw: f64,         // Rotation left/right (radians)
+    pub pitch: f64,       // Rotation up/down (radians)
+    pub fov_degrees: f64, // Field of view in degrees (e.g., 90.0)
 }
 
 impl DrawCamera {
@@ -52,19 +51,31 @@ impl DrawCamera {
             return None;
         }
 
-        let projected_x = (local_x / local_z) * self.fov;
-        let projected_y = (local_y / local_z) * self.fov;
+        // Convert FOV from degrees to radians and calculate scale
+        let fov_rad = self.fov_degrees.to_radians();
+        let scale = (fov_rad / 2.0).tan();
 
-        let screen_w = screen_width() as f32;
-        let screen_h = screen_height() as f32;
+        let aspect = screen_width() as f64 / screen_height() as f64;
+
+        // Standard perspective projection
+        let projected_x = (local_x / local_z) / scale;
+        let projected_y = (local_y / local_z) / scale;
+
+        // Apply aspect ratio to X only
+        let screen_x = (projected_x / aspect) as f32;
+        let screen_y = -projected_y as f32; // Flip Y for screen coordinates
+
+        let screen_w = screen_width();
+        let screen_h = screen_height();
 
         Some(vec2(
-            (projected_x as f32 * screen_w) + (screen_w / 2.0),
-            (-projected_y as f32 * screen_h) + (screen_h / 2.0),
+            screen_x * screen_w + screen_w / 2.0,
+            screen_y * screen_h + screen_h / 2.0,
         ))
     }
 }
 
+// Updated controller
 pub struct CameraController {
     pub camera: DrawCamera,
     pub move_speed: f64,
@@ -78,7 +89,7 @@ impl CameraController {
                 position_km: start_pos,
                 yaw: -std::f64::consts::PI / 2.0,
                 pitch: 0.0,
-                fov: 1.0,
+                fov_degrees: 90.0, // 90 degree FOV is standard
             },
             move_speed: 50_000.0,
             sensitivity: 1.0,
@@ -91,7 +102,6 @@ impl CameraController {
         let dt = get_frame_time() as f64;
         let frame_speed = self.move_speed * dt;
 
-        // 1. WASD Movement
         if is_key_down(KeyCode::W) {
             self.camera.position_km += front * frame_speed;
         }
@@ -106,16 +116,18 @@ impl CameraController {
         }
 
         let delta = mouse_delta_position();
-
         self.camera.yaw -= delta.x as f64 * self.sensitivity;
         self.camera.pitch += delta.y as f64 * self.sensitivity;
 
         let limit = 89.0_f64.to_radians();
         self.camera.pitch = self.camera.pitch.clamp(-limit, limit);
 
+        // Zoom changes FOV (smaller FOV = more zoomed in)
         let wheel = mouse_wheel().1;
         if wheel != 0.0 {
-            self.camera.fov *= if wheel > 0.0 { 1.1 } else { 0.9 };
+            self.camera.fov_degrees *= if wheel > 0.0 { 1.1 } else { 0.9 };
+            // Clamp FOV to reasonable range (1 to 179 degrees)
+            self.camera.fov_degrees = self.camera.fov_degrees.clamp(1.0, 179.0);
         }
     }
 }
