@@ -13,14 +13,14 @@ use algo::config::Config;
 use algo::history::{IterationRecord, OptimizationHistory};
 use algo::objective::{cost_function, get_min_distance};
 use algo::pso::Swarm;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use serde_json;
 use std::path::Path;
 
 #[macroquad::main("Orbital Simulation 3D")]
 async fn main() {
     let config = Config::from_file("config.json");
-    let start_epoch = Utc::now();
+    let start_epoch = Utc::now() + chrono::Duration::days(365);
 
     let bounds = vec![
         (config.bounds.vx[0], config.bounds.vx[1]),
@@ -75,9 +75,9 @@ async fn main() {
 
             let objective_dist = if !best_params_this_iter.is_empty() {
                 get_min_distance(&best_params_this_iter, &config, &traj_gen)
-                } else {
-                    f64::INFINITY
-                };
+            } else {
+                f64::INFINITY
+            };
 
             records.push(IterationRecord {
                 iteration: iter + 1,
@@ -158,7 +158,12 @@ async fn main() {
         iter_drawer.set_time(simulation_time);
         iter_drawer.draw(&cam_controller.camera);
 
-        draw_hud(start_epoch + chrono::Duration::milliseconds((simulation_time * 1000.0) as i64));
+        draw_hud(
+            DateTime::parse_from_rfc3339(history.start_epoch.as_str())
+                .expect("Nieprawidłowy format daty")
+                .to_utc()
+                + chrono::Duration::milliseconds((simulation_time * 1000.0) as i64),
+        );
 
         next_frame().await;
     }
