@@ -95,12 +95,9 @@ pub fn cost_function(params: &[f64], config: &Config, traj_gen: &TrajectoryGener
 
     let start_vel = start_vel.norm();
     let collision_penalty = if collided_earth { 1e9 } else { 0.0 };
-    let (w_dist, w_start, w_end) = (config.weights[0], config.weights[1], config.weights[2]);
+    let (w_start, w_end) = (config.weights[0], config.weights[1]);
 
-    (w_dist * best_dist / 200.0)
-        + (w_end * end_speed / 2.3)
-        + (w_start * start_vel / 11.0)
-        + collision_penalty
+    (best_dist) * end_speed.powf(w_end) * start_vel.powf(w_start) + collision_penalty
 }
 
 pub fn generate_trajectory_for_params(
