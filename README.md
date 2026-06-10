@@ -70,7 +70,7 @@ interstellar_rust/
 We fragmencie uwzględniającym prędkość początkową
 
 ```math
-cost = \left( \frac{2000}{\text{w\_dist}} + \text{best\_dist} \right) \cdot \text{end\_speed}^{\text{w\_end}} \cdot \text{start\_speed}^{\text{w\_start}} + \text{collision\_penalty}
+cost = \left( \frac{w_{\text{dist}} \cdot \text{best\_dist}}{200.0} \right) + \left( \frac{w_{\text{end}} \cdot \text{end\_speed}}{2.3} \right) + \left( \frac{w_{\text{start}} \cdot \text{start\_vel}}{11.0} \right) + \text{collision\_penalty}
 ```
 
 **Objaśnienie zmiennych:**

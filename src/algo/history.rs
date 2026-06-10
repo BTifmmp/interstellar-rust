@@ -6,6 +6,7 @@ pub struct IterationRecord {
     pub iteration: usize,
     pub best_cost: f64,
     pub best_params: Vec<f64>,
+    pub objective_dist: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

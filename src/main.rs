@@ -11,7 +11,7 @@ mod util;
 use crate::util::math::Vec3d;
 use algo::config::Config;
 use algo::history::{IterationRecord, OptimizationHistory};
-use algo::objective::cost_function;
+use algo::objective::{cost_function, get_min_distance};
 use algo::pso::Swarm;
 use chrono::Utc;
 use serde_json;
@@ -64,6 +64,7 @@ async fn main() {
 
             let mut best_cost_this_iter = f64::INFINITY;
             let mut best_params_this_iter = Vec::new();
+
             for particle in &swarm.particles {
                 let cost = objective(&particle.position);
                 if cost < best_cost_this_iter {
@@ -72,10 +73,17 @@ async fn main() {
                 }
             }
 
+            let objective_dist = if !best_params_this_iter.is_empty() {
+                get_min_distance(&best_params_this_iter, &config, &traj_gen)
+                } else {
+                    f64::INFINITY
+                };
+
             records.push(IterationRecord {
                 iteration: iter + 1,
                 best_cost: best_cost_this_iter,
                 best_params: best_params_this_iter,
+                objective_dist,
             });
 
             println!(
