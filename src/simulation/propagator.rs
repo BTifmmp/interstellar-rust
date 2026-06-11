@@ -17,9 +17,9 @@ pub fn acceleration_at(pos: Vec3d, bodies: &[Body]) -> Vec3d {
 }
 
 pub fn rk4_step(rocket: &mut RocketState, bodies: &[Body], dt: f64) {
-    let derivatives = |p: Vec3d, _v: Vec3d| -> (Vec3d, Vec3d) {
+    let derivatives = |p: Vec3d, v: Vec3d| -> (Vecs3d, Vec3d) {
         let a = acceleration_at(p, bodies);
-        (_v, a)
+        (v, a)
     };
 
     let p0 = rocket.position_km;
